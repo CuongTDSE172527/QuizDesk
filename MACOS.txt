@@ -1,0 +1,22 @@
+QUIZDESK 4.1 — macOS preview
+
+Chọn arm64 cho Apple Silicon (M1/M2/M3/M4/...), x64 cho Mac Intel.
+Yêu cầu macOS 14 trở lên. Đã kèm .NET runtime; không cần Microsoft Office.
+
+Giải nén .tar.gz bằng Archive Utility hoặc tar -xzf, giữ nguyên QuizDesk.app.
+Bản này được build trên Windows, chưa chạy thử trên máy Mac và chưa được ký
+Developer ID/notarize. Không coi đây là bản Mac đã nghiệm thu.
+
+Để kiểm tra cục bộ trên Mac, mở Terminal tại thư mục đã giải nén rồi chạy:
+  sh prepare-local-macos.sh ./QuizDesk.app
+Sau đó mở QuizDesk.app. Script chỉ ký ad-hoc để phát triển, không notarize.
+Nếu macOS chặn app tải về, dùng chức năng Open Anyway trong Privacy & Security
+chỉ khi bạn tin cậy chính bản build này; không cần tắt Gatekeeper toàn hệ thống.
+
+Settings lưu tại ~/Library/Application Support/QuizDesk/settings.json.
+File .quiz dùng chung với Windows; chép file sang Mac rồi nhập trong app.
+
+Cần kiểm thử trên Mac trước khi phân phối: chọn/lưu file, DOC/DOCX/XLS/RTF,
+tiếng Việt, sáng/tối/theo hệ thống, sửa/xóa/lưu đề, ôn tập, thi và tự nộp.
+Để phát hành rộng rãi cần ký Developer ID và notarization trên môi trường Mac.
+

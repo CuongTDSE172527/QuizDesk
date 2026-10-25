@@ -1,0 +1,23 @@
+[
+  {
+    "number": 1,
+    "text": "Kết quả của 2 + 3 là bao nhiêu?",
+    "options": {
+      "A": "4",
+      "B": "5",
+      "C": "6"
+    },
+    "answer": "B",
+    "note": "2 + 3 = 5."
+  },
+  {
+    "number": 2,
+    "text": "Một giờ có bao nhiêu phút?",
+    "options": {
+      "A": "60 phút",
+      "B": "30 phút"
+    },
+    "answer": "A",
+    "note": "Một giờ bằng 60 phút."
+  }
+]

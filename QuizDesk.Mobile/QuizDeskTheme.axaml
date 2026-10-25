@@ -1,0 +1,145 @@
+<Styles xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+  <Styles.Resources>
+    <ResourceDictionary>
+      <ResourceDictionary.ThemeDictionaries>
+        <ResourceDictionary x:Key="Light">
+          <SolidColorBrush x:Key="QDSurface">#F6F7FB</SolidColorBrush>
+          <SolidColorBrush x:Key="QDContainerLow">#FFFFFF</SolidColorBrush>
+          <SolidColorBrush x:Key="QDContainer">#EEF0F7</SolidColorBrush>
+          <SolidColorBrush x:Key="QDContainerHigh">#E6EAF3</SolidColorBrush>
+          <SolidColorBrush x:Key="QDOnSurface">#20263A</SolidColorBrush>
+          <SolidColorBrush x:Key="QDOnSurfaceVariant">#596278</SolidColorBrush>
+          <SolidColorBrush x:Key="QDPrimary">#4659B7</SolidColorBrush>
+          <SolidColorBrush x:Key="QDOnPrimary">#FFFFFF</SolidColorBrush>
+          <SolidColorBrush x:Key="QDPrimaryContainer">#E7ECFF</SolidColorBrush>
+          <SolidColorBrush x:Key="QDOnPrimaryContainer">#27377D</SolidColorBrush>
+          <SolidColorBrush x:Key="QDSecondaryContainer">#EEF1FB</SolidColorBrush>
+          <SolidColorBrush x:Key="QDOnSecondaryContainer">#34446F</SolidColorBrush>
+          <SolidColorBrush x:Key="QDOutline">#7B849A</SolidColorBrush>
+          <SolidColorBrush x:Key="QDOutlineVariant">#D9DFEB</SolidColorBrush>
+          <SolidColorBrush x:Key="QDError">#B53A45</SolidColorBrush>
+          <SolidColorBrush x:Key="QDOnError">#FFFFFF</SolidColorBrush>
+          <SolidColorBrush x:Key="QDErrorContainer">#FCE9EC</SolidColorBrush>
+          <SolidColorBrush x:Key="QDOnErrorContainer">#812731</SolidColorBrush>
+          <SolidColorBrush x:Key="QDSuccessContainer">#E4F4EC</SolidColorBrush>
+          <SolidColorBrush x:Key="QDOnSuccessContainer">#225A43</SolidColorBrush>
+          <SolidColorBrush x:Key="QDWarningContainer">#FFF4DB</SolidColorBrush>
+          <SolidColorBrush x:Key="QDOnWarningContainer">#72500B</SolidColorBrush>
+          <SolidColorBrush x:Key="QDWarningOutline">#AD7A14</SolidColorBrush>
+          <SolidColorBrush x:Key="QDStateLayer">#124659B7</SolidColorBrush>
+          <SolidColorBrush x:Key="QDFocusRing">#404659B7</SolidColorBrush>
+        </ResourceDictionary>
+        <ResourceDictionary x:Key="Dark">
+          <SolidColorBrush x:Key="QDSurface">#131720</SolidColorBrush>
+          <SolidColorBrush x:Key="QDContainerLow">#1B2130</SolidColorBrush>
+          <SolidColorBrush x:Key="QDContainer">#222A3B</SolidColorBrush>
+          <SolidColorBrush x:Key="QDContainerHigh">#2C3549</SolidColorBrush>
+          <SolidColorBrush x:Key="QDOnSurface">#E8EDF7</SolidColorBrush>
+          <SolidColorBrush x:Key="QDOnSurfaceVariant">#B4BED2</SolidColorBrush>
+          <SolidColorBrush x:Key="QDPrimary">#B6C4FF</SolidColorBrush>
+          <SolidColorBrush x:Key="QDOnPrimary">#172550</SolidColorBrush>
+          <SolidColorBrush x:Key="QDPrimaryContainer">#2B3965</SolidColorBrush>
+          <SolidColorBrush x:Key="QDOnPrimaryContainer">#E0E7FF</SolidColorBrush>
+          <SolidColorBrush x:Key="QDSecondaryContainer">#2A334B</SolidColorBrush>
+          <SolidColorBrush x:Key="QDOnSecondaryContainer">#DBE3FA</SolidColorBrush>
+          <SolidColorBrush x:Key="QDOutline">#8996B0</SolidColorBrush>
+          <SolidColorBrush x:Key="QDOutlineVariant">#3B465D</SolidColorBrush>
+          <SolidColorBrush x:Key="QDError">#FFB1BB</SolidColorBrush>
+          <SolidColorBrush x:Key="QDOnError">#531925</SolidColorBrush>
+          <SolidColorBrush x:Key="QDErrorContainer">#492731</SolidColorBrush>
+          <SolidColorBrush x:Key="QDOnErrorContainer">#FFDCE1</SolidColorBrush>
+          <SolidColorBrush x:Key="QDSuccessContainer">#203D34</SolidColorBrush>
+          <SolidColorBrush x:Key="QDOnSuccessContainer">#B6EBD1</SolidColorBrush>
+          <SolidColorBrush x:Key="QDWarningContainer">#42371E</SolidColorBrush>
+          <SolidColorBrush x:Key="QDOnWarningContainer">#F6D99A</SolidColorBrush>
+          <SolidColorBrush x:Key="QDWarningOutline">#CBA553</SolidColorBrush>
+          <SolidColorBrush x:Key="QDStateLayer">#18B6C4FF</SolidColorBrush>
+          <SolidColorBrush x:Key="QDFocusRing">#50B6C4FF</SolidColorBrush>
+        </ResourceDictionary>
+      </ResourceDictionary.ThemeDictionaries>
+    </ResourceDictionary>
+  </Styles.Resources>
+
+  <Style Selector="TextBlock.supporting"><Setter Property="Foreground" Value="{DynamicResource QDOnSurfaceVariant}" /></Style>
+  <Style Selector="TextBlock.primary"><Setter Property="Foreground" Value="{DynamicResource QDPrimary}" /></Style>
+  <Style Selector="TextBlock.onHero"><Setter Property="Foreground" Value="{DynamicResource QDOnPrimaryContainer}" /></Style>
+
+  <Style Selector="Button.qd">
+    <Setter Property="Background" Value="Transparent" /><Setter Property="Foreground" Value="{DynamicResource QDPrimary}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource QDOutlineVariant}" /><Setter Property="BorderThickness" Value="1" />
+    <Setter Property="CornerRadius" Value="10" /><Setter Property="MinHeight" Value="48" />
+    <Setter Property="Padding" Value="20,10" /><Setter Property="FontSize" Value="14" /><Setter Property="FontWeight" Value="Medium" />
+    <Setter Property="Template">
+      <ControlTemplate>
+        <Border Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}" CornerRadius="{TemplateBinding CornerRadius}">
+          <Border x:Name="StateLayer" CornerRadius="{TemplateBinding CornerRadius}" Padding="{TemplateBinding Padding}">
+            <ContentPresenter Content="{TemplateBinding Content}" ContentTemplate="{TemplateBinding ContentTemplate}" TextElement.Foreground="{TemplateBinding Foreground}" HorizontalContentAlignment="{TemplateBinding HorizontalContentAlignment}" VerticalContentAlignment="Center" />
+          </Border>
+        </Border>
+      </ControlTemplate>
+    </Setter>
+  </Style>
+  <Style Selector="Button.qd.accent"><Setter Property="Background" Value="{DynamicResource QDPrimary}" /><Setter Property="Foreground" Value="{DynamicResource QDOnPrimary}" /><Setter Property="BorderThickness" Value="0" /></Style>
+  <Style Selector="Button.qd.tonal"><Setter Property="Background" Value="{DynamicResource QDSecondaryContainer}" /><Setter Property="Foreground" Value="{DynamicResource QDOnSecondaryContainer}" /><Setter Property="BorderThickness" Value="0" /></Style>
+  <Style Selector="Button.qd.text, Button.qd.icon, Button.qd.nav"><Setter Property="BorderThickness" Value="0" /></Style>
+  <Style Selector="Button.qd.danger"><Setter Property="Foreground" Value="{DynamicResource QDError}" /><Setter Property="BorderBrush" Value="{DynamicResource QDError}" /></Style>
+  <Style Selector="Button.qd.accent.danger"><Setter Property="Background" Value="{DynamicResource QDError}" /><Setter Property="Foreground" Value="{DynamicResource QDOnError}" /></Style>
+  <Style Selector="Button.qd:pointerover /template/ Border#StateLayer"><Setter Property="Background" Value="{DynamicResource QDStateLayer}" /></Style>
+  <Style Selector="Button.qd:pressed /template/ Border#StateLayer"><Setter Property="Background" Value="{DynamicResource QDStateLayer}" /></Style>
+  <Style Selector="Button.qd:focus-visible"><Setter Property="BorderThickness" Value="2" /><Setter Property="BorderBrush" Value="{DynamicResource QDPrimary}" /></Style>
+  <Style Selector="Button.qd:disabled"><Setter Property="Opacity" Value="0.5" /></Style>
+  <Style Selector="Button.qd.icon"><Setter Property="Width" Value="48" /><Setter Property="Padding" Value="12" /><Setter Property="HorizontalContentAlignment" Value="Center" /></Style>
+  <Style Selector="Button.qd.nav"><Setter Property="Padding" Value="0,10,0,8" /><Setter Property="MinHeight" Value="80" /><Setter Property="CornerRadius" Value="12" /><Setter Property="HorizontalAlignment" Value="Stretch" /><Setter Property="HorizontalContentAlignment" Value="Stretch" /><Setter Property="Background" Value="Transparent" /></Style>
+  <Style Selector="Button.nav Border.navIndicator"><Setter Property="Background" Value="Transparent" /></Style>
+  <Style Selector="Button.nav.selected Border.navIndicator"><Setter Property="Background" Value="{DynamicResource QDSecondaryContainer}" /></Style>
+  <Style Selector="Button.nav.selected TextBlock"><Setter Property="FontWeight" Value="SemiBold" /><Setter Property="Foreground" Value="{DynamicResource QDOnSurface}" /></Style>
+
+  <Style Selector="ToggleButton.choice, ToggleButton.jump">
+    <Setter Property="Background" Value="{DynamicResource QDSurface}" /><Setter Property="Foreground" Value="{DynamicResource QDOnSurface}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource QDOutlineVariant}" /><Setter Property="BorderThickness" Value="2" /><Setter Property="CornerRadius" Value="12" />
+    <Setter Property="Template"><ControlTemplate><Border x:Name="ChoiceBorder" Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}" CornerRadius="{TemplateBinding CornerRadius}" Padding="{TemplateBinding Padding}"><ContentPresenter Content="{TemplateBinding Content}" HorizontalContentAlignment="{TemplateBinding HorizontalContentAlignment}" VerticalContentAlignment="Center" /></Border></ControlTemplate></Setter>
+  </Style>
+  <Style Selector="ToggleButton.choice:checked, ToggleButton.jump:checked"><Setter Property="Background" Value="{DynamicResource QDSecondaryContainer}" /><Setter Property="BorderBrush" Value="{DynamicResource QDPrimary}" /><Setter Property="BorderThickness" Value="2" /></Style>
+  <Style Selector="ToggleButton.choice:checked TextBlock"><Setter Property="Foreground" Value="{DynamicResource QDOnSecondaryContainer}" /></Style>
+  <Style Selector="ToggleButton.choice:pointerover, ToggleButton.jump:pointerover"><Setter Property="BorderBrush" Value="{DynamicResource QDPrimary}" /></Style>
+  <Style Selector="ToggleButton.choice:focus-visible, ToggleButton.jump:focus-visible"><Setter Property="BorderBrush" Value="{DynamicResource QDPrimary}" /><Setter Property="BorderThickness" Value="2" /></Style>
+  <Style Selector="ToggleButton.choice:disabled, ToggleButton.jump:disabled"><Setter Property="Opacity" Value="0.5" /></Style>
+  <Style Selector="ToggleButton.choice.correct"><Setter Property="Background" Value="{DynamicResource QDSuccessContainer}" /><Setter Property="BorderBrush" Value="{DynamicResource QDOnSuccessContainer}" /></Style>
+  <Style Selector="ToggleButton.choice.correct TextBlock"><Setter Property="Foreground" Value="{DynamicResource QDOnSuccessContainer}" /></Style>
+  <Style Selector="ToggleButton.choice.wrong"><Setter Property="Background" Value="{DynamicResource QDErrorContainer}" /><Setter Property="BorderBrush" Value="{DynamicResource QDOnErrorContainer}" /></Style>
+  <Style Selector="ToggleButton.choice.wrong TextBlock"><Setter Property="Foreground" Value="{DynamicResource QDOnErrorContainer}" /></Style>
+
+  <Style Selector="TextBox"><Setter Property="MinHeight" Value="56" /><Setter Property="CornerRadius" Value="8" /><Setter Property="Padding" Value="16,14" /><Setter Property="Background" Value="{DynamicResource QDContainerLow}" /><Setter Property="Foreground" Value="{DynamicResource QDOnSurface}" /><Setter Property="BorderBrush" Value="{DynamicResource QDOutline}" /><Setter Property="BorderThickness" Value="1" /><Setter Property="SelectionBrush" Value="{DynamicResource QDPrimaryContainer}" /></Style>
+  <Style Selector="TextBox:focus-within"><Setter Property="BorderBrush" Value="{DynamicResource QDPrimary}" /><Setter Property="BorderThickness" Value="1" /></Style>
+  <Style Selector="TextBox /template/ TextBlock#PART_Watermark"><Setter Property="Foreground" Value="{DynamicResource QDOnSurfaceVariant}" /><Setter Property="Opacity" Value="1" /></Style>
+  <Style Selector="ComboBox, NumericUpDown"><Setter Property="MinHeight" Value="56" /><Setter Property="CornerRadius" Value="8" /><Setter Property="Background" Value="{DynamicResource QDContainerLow}" /><Setter Property="Foreground" Value="{DynamicResource QDOnSurface}" /><Setter Property="BorderBrush" Value="{DynamicResource QDOutline}" /><Setter Property="BorderThickness" Value="1" /></Style>
+  <Style Selector="ComboBoxItem:selected"><Setter Property="Background" Value="{DynamicResource QDSecondaryContainer}" /><Setter Property="Foreground" Value="{DynamicResource QDOnSecondaryContainer}" /></Style>
+  <Style Selector="CheckBox">
+    <Setter Property="MinHeight" Value="48" /><Setter Property="MinWidth" Value="48" /><Setter Property="Foreground" Value="{DynamicResource QDOnSurface}" />
+    <Setter Property="Template"><ControlTemplate><Grid ColumnDefinitions="48,*"><Border x:Name="Check" Width="20" Height="20" CornerRadius="2" BorderThickness="2" BorderBrush="{DynamicResource QDOnSurfaceVariant}" HorizontalAlignment="Center" VerticalAlignment="Center"><Path x:Name="Tick" IsVisible="False" Data="M 3,8 L 7,12 L 15,4" Stroke="{DynamicResource QDOnPrimary}" StrokeThickness="2" /></Border><ContentPresenter Grid.Column="1" Content="{TemplateBinding Content}" VerticalAlignment="Center" /></Grid></ControlTemplate></Setter>
+  </Style>
+  <Style Selector="CheckBox:checked /template/ Border#Check"><Setter Property="Background" Value="{DynamicResource QDPrimary}" /><Setter Property="BorderBrush" Value="{DynamicResource QDPrimary}" /></Style>
+  <Style Selector="CheckBox:checked /template/ Path#Tick"><Setter Property="IsVisible" Value="True" /></Style>
+  <Style Selector="CheckBox:focus-visible /template/ Border#Check"><Setter Property="BoxShadow" Value="0 0 0 8 #306750A4" /></Style>
+  <Style Selector="CheckBox:disabled"><Setter Property="Opacity" Value="0.5" /></Style>
+  <Style Selector="ToggleSwitch">
+    <Setter Property="MinHeight" Value="56" /><Setter Property="HorizontalAlignment" Value="Stretch" /><Setter Property="Foreground" Value="{DynamicResource QDOnSurface}" />
+    <Setter Property="Template"><ControlTemplate><Grid ColumnDefinitions="*,Auto" ColumnSpacing="16"><ContentPresenter Content="{TemplateBinding Content}" VerticalAlignment="Center" /><Border x:Name="Track" Grid.Column="1" Width="52" Height="32" CornerRadius="16" Background="{DynamicResource QDContainerHigh}" BorderBrush="{DynamicResource QDOutline}" BorderThickness="2" VerticalAlignment="Center"><Grid x:Name="PART_SwitchKnob" Width="20" Height="28" HorizontalAlignment="Left"><Canvas><Grid x:Name="PART_MovingKnobs" Width="28" Height="28"><Ellipse x:Name="Thumb" Width="16" Height="16" Fill="{DynamicResource QDOutline}" /></Grid></Canvas></Grid></Border></Grid></ControlTemplate></Setter>
+  </Style>
+  <Style Selector="ToggleSwitch:checked /template/ Border#Track"><Setter Property="Background" Value="{DynamicResource QDPrimary}" /><Setter Property="BorderBrush" Value="{DynamicResource QDPrimary}" /></Style>
+  <Style Selector="ToggleSwitch:checked /template/ Ellipse#Thumb"><Setter Property="Fill" Value="{DynamicResource QDOnPrimary}" /><Setter Property="Width" Value="24" /><Setter Property="Height" Value="24" /></Style>
+  <Style Selector="ToggleSwitch:focus-visible /template/ Border#Track"><Setter Property="BoxShadow" Value="0 0 0 4 #306750A4" /></Style>
+  <Style Selector="ToggleSwitch:disabled"><Setter Property="Opacity" Value="0.5" /></Style>
+  <Style Selector="ProgressBar"><Setter Property="Foreground" Value="{DynamicResource QDPrimary}" /><Setter Property="Background" Value="{DynamicResource QDSecondaryContainer}" /><Setter Property="CornerRadius" Value="4" /></Style>
+  <Style Selector="ListBox"><Setter Property="Background" Value="Transparent" /><Setter Property="BorderThickness" Value="0" /></Style>
+  <Style Selector="ListBoxItem"><Setter Property="Padding" Value="0" /><Setter Property="Margin" Value="0,0,0,8" /><Setter Property="CornerRadius" Value="12" /></Style>
+  <Style Selector="Expander"><Setter Property="Background" Value="{DynamicResource QDContainerLow}" /><Setter Property="CornerRadius" Value="12" /><Setter Property="BorderThickness" Value="0" /><Setter Property="Foreground" Value="{DynamicResource QDOnSurface}" /></Style>
+  <Style Selector="Button.qd.nav.selected /template/ Border#StateLayer"><Setter Property="Background" Value="{DynamicResource QDStateLayer}" /></Style>
+  <Style Selector="ToggleButton.choice:pressed"><Setter Property="Background" Value="{DynamicResource QDSecondaryContainer}" /></Style>
+  <Style Selector="ToggleButton.jump"><Setter Property="CornerRadius" Value="8" /></Style>
+  <Style Selector="ToggleButton.jump.current"><Setter Property="BorderBrush" Value="{DynamicResource QDPrimary}" /></Style>
+  <Style Selector="Border.hero"><Setter Property="Background" Value="{DynamicResource QDPrimaryContainer}" /></Style>
+  <Style Selector="Button.qd:focus-visible /template/ Border#StateLayer"><Setter Property="BoxShadow" Value="0 0 0 3 #808394E7" /></Style>
+  <Style Selector="Button.qd.flashcard"><Setter Property="Background" Value="{DynamicResource QDContainerLow}" /><Setter Property="Foreground" Value="{DynamicResource QDOnSurface}" /><Setter Property="CornerRadius" Value="16" /></Style>
+  <Style Selector="Button.qd.flashcard.revealed"><Setter Property="Background" Value="{DynamicResource QDPrimaryContainer}" /><Setter Property="BorderBrush" Value="{DynamicResource QDPrimary}" /></Style>
+</Styles>

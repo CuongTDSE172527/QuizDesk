@@ -1,0 +1,17 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType><TargetFramework>net10.0-ios</TargetFramework>
+    <SupportedOSPlatformVersion>15.0</SupportedOSPlatformVersion>
+    <ImplicitUsings>enable</ImplicitUsings><Nullable>disable</Nullable>
+    <ApplicationId>com.quizdesk.mobile</ApplicationId><ApplicationTitle>QuizDesk</ApplicationTitle>
+    <ApplicationVersion>15</ApplicationVersion><ApplicationDisplayVersion>5.11.0</ApplicationDisplayVersion>
+    <RestorePackagesPath>../.packages</RestorePackagesPath>
+    <JsonSerializerIsReflectionEnabledByDefault>true</JsonSerializerIsReflectionEnabledByDefault>
+    <AppIcon>AppIcon</AppIcon>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="Avalonia.iOS" Version="12.1.4" />
+    <ProjectReference Include="../QuizDesk.Mobile/QuizDesk.Mobile.csproj" />
+    <TrimmerRootAssembly Include="QuizDesk.Core" /><TrimmerRootAssembly Include="QuizDesk.Mobile" />
+  </ItemGroup>
+</Project>

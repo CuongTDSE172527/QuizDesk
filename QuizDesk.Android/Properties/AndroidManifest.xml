@@ -1,0 +1,4 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android" android:installLocation="internalOnly">
+  <application android:label="QuizDesk" android:icon="@mipmap/ic_launcher" android:allowBackup="false" android:usesCleartextTraffic="false" />
+</manifest>

@@ -1,0 +1,26 @@
+QuizDesk 5.11.0 validation — 2026-10-25 Asia/Bangkok
+PASS 503 Core checks: 43 media checks and460 retained checks.
+Media: actual format signatures, legacy XML compatibility and ZIP v2 roundtrip,
+byte fidelity, stem/choice/note targets,15 choice-shuffle remappings, independent
+exam snapshots, merge, library edit audit, workspace, active exam, history,
+flashcards, MIME/traversal/count/size/bank budgets and altered media rejection.
+Synthetic DOCX: image-only question/choices and blank video note, no false
+media-only duplicate choices. JSON Base64 and external inbox package tested.
+Actual DOCX:53 questions (34 manual+19 automatic), q19 map/answer C retained,
+q33 split heading preserved, portable package roundtrip retains map bytes.
+PASS fresh real Avalonia UI phone/desktop: q19 map decoding, stable answer
+selection, flashcard sides, edit/save keeps attachments, GIF frames advance
+and pause, mock attempt/history media. Editor long-list position/filter,
+100 stable answer-navigation cycles, general settings/history/checkpoint,
+Mon15 recognition and merge/cancel/source audit/restart regressions retained.
+PASS actual VOR/ILS/Mon15 and legacy DOC/XLS, prior security guards/reviews.
+PASS fresh NuGet all-transitive Windows/Android audit: no known advisories
+reported. Audit failures remain build errors. SkiaSharp3.119.4 reused explicitly.
+PASS production shared DLL hashes identical across3 desktop RIDs; QA hooks absent.
+PASS original APK signing key,60100/5.11.0, arm64/x64, dynamic JNI callback,
+16 KB ZIP/ELF alignment,37 retained intent cases; video Activity is not exported.
+PASS Windows installer; Mac package payload SHA256/XAR/BOM/architecture checks.
+LIMIT: no native device playback/runtime test on Android/macOS/iOS. iOS source
+only; requires Mac/Xcode to compile and test. iOS-specific graph not audited.
+Desktop video uses installed default player. Native codec support varies.
+Mac not Developer ID signed/notarized. This is not a pentest/certification.

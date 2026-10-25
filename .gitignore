@@ -1,0 +1,37 @@
+**/bin/
+**/obj/
+.packages/
+.tooling/
+qa-build/
+dist/
+*.keystore
+*.p12
+*.p8
+*.mobileprovision
+
+# Generated validation/publish output and local signing material
+qa-*/
+preview-data/
+*.log
+*.apk
+*.aab
+*.ipa
+*.pkg
+*.pfx
+*.jks
+.env
+.env.*
+
+# Local settings, archives, credentials and document drafts
+.vs/
+.idea/
+*.user
+*.suo
+*.key
+*.pem
+*.cer
+*.zip
+*.7z
+*.tar.gz
+.DS_Store
+Thumbs.db

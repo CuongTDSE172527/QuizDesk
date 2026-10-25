@@ -1,0 +1,12 @@
+Câu 1. Kết quả của 2 + 3 là bao nhiêu?
+A. 4
+B. 5
+C. 6
+Đáp án: B
+Giải thích: 2 + 3 = 5.
+
+Câu 2. Một giờ có bao nhiêu phút?
+A. 60 phút
+B. 30 phút
+Đáp án: A
+Giải thích: Một giờ bằng 60 phút.

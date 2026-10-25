@@ -1,0 +1,27 @@
+﻿QuizDesk 5.11.0 — Media trong bộ đề
+
+DOC/DOCX giữ ảnh/media nhúng theo câu, lựa chọn hoặc giải thích, kể cả đoạn
+chỉ có ảnh. File Khí tượng đã được đối chiếu: 53 câu, bản đồ ở câu19, đáp án C.
+Bộ đề → mở bộ → Sửa/Thêm câu hỏi → chọn Vị trí đính kèm → Thêm ảnh / GIF / video.
+Chọn vị trí Câu hỏi, Giải thích/đáp án hoặc A–H; có nút xóa từng đính kèm.
+
+PNG/JPEG/WebP/GIF: tối đa8 MB/file; MP4/WebM:16 MB/file; tổng24 MB/bộ,
+16 media/câu,1000 media/bộ. Tối đa50 MB/file nhập,5000 câu.
+GIF có phát/dừng thủ công. Video không tự phát, native Android/iOS, app mặc
+định PC. Đồng hồ thi vẫn tiếp tục; codec phụ thuộc thiết bị, ưu tiên H.264/AAC.
+Có giới hạn giải mã ảnh/GIF; giảm kích thước ảnh nếu vượt giới hạn được báo.
+
+File .quiz có media là ZIP v2 cần QuizDesk5.11.0+ ở người nhận. Media đi kèm
+file và dùng offline, không cần server. .quiz chữ cũ vẫn đọc bình thường.
+Giữ media khi lưu thư viện, gộp/trộn câu hoặc lựa chọn, khôi phục bài, flashcards,
+lịch sử thi. Media giải thích chỉ hiện khi được phép xem đáp án, không lộ trước.
+Liên kết ngoài/OLE không tải hay chạy; báo để người dùng thêm file gốc.
+PDF/Excel/HTML/ODT vẫn nhập chữ; bổ sung media trong màn hình Sửa.
+
+Cài đè giữ dữ liệu. Android cùng khóa ký/versionCode60100; iOS mã nguồn build15.
+Windows x64, macOS14+ (Apple Silicon arm64 hoặc Intel x64). Mac chưa notarize.
+Chưa thử native Android/macOS/iOS trên thiết bị; UI kiểm tra trên Windows.
+
+Khuyến nghị GitHub private: upload nội dung mã nguồn trong Source.zip,
+không upload SDK/cache, khóa ký, dữ liệu cá nhân hay file đề riêng.
+Bộ cài nên để Releases; xem SOURCE-CONTROL.md. Chưa push repo ra bên ngoài.

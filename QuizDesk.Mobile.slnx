@@ -1,0 +1,7 @@
+<Solution>
+  <Project Path="QuizDesk.Core/QuizDesk.Core.csproj" />
+  <Project Path="QuizDesk.Mobile/QuizDesk.Mobile.csproj" />
+  <Project Path="QuizDesk.Preview/QuizDesk.Preview.csproj" />
+  <Project Path="QuizDesk.Desktop/QuizDesk.Desktop.csproj" />
+  <Project Path="QuizDesk.Mobile.Tests/QuizDesk.Mobile.Tests.csproj" />
+</Solution>
