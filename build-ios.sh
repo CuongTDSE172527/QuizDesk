@@ -18,7 +18,7 @@ case "${1:-simulator}" in
     app='QuizDesk.iOS/bin/Release/net10.0-ios/ios-arm64/QuizDesk.iOS.app'
     test -d "$app" || { echo 'Device .app was not produced.' >&2; exit 1; }
     executable=$(/usr/libexec/PlistBuddy -c 'Print :CFBundleExecutable' "$app/Info.plist")
-    xcrun lipo -verify_arch arm64 "$app/$executable"
+    xcrun lipo "$app/$executable" -verify_arch arm64
     xcrun vtool -show-build "$app/$executable" | grep -Eq 'platform[[:space:]]+IOS$' || {
       echo 'Expected an iPhone device binary, not a simulator binary.' >&2; exit 1;
     }
