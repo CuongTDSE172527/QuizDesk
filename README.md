@@ -1,4 +1,4 @@
-# QuizDesk 5.14.0 — Windows, macOS, Android và mã nguồn iOS
+# QuizDesk 5.15.0 — Windows, macOS, Android và mã nguồn iOS
 
 [Tải bản cài / Releases](https://github.com/CuongTDSE172527/QuizDesk/releases/latest) · [Changelog](CHANGELOG.md)
 
@@ -394,6 +394,12 @@ Trong **Artifacts**, tải `QuizDesk-iPhone-unsigned-IPA-<số run>`, giải né
 Log build iPhone nằm trong artifact `QuizDesk-iPhone-build-log-<số run>` kể cả khi build lỗi.
 Artifact được giữ 7 ngày; đây là thời gian lưu trên GitHub, khác hạn ký Apple.
 
+Sau push `main` hoặc tag version mới, job publish đưa thêm
+`QuizDesk-<version>-ios-arm64-unsigned.ipa` và SHA-256 lên GitHub Releases.
+Giữ nguyên tag/file đã phát hành: commit mới cùng version chỉ có Artifacts,
+cần tăng version đồng bộ để tạo release mới. Pull request chỉ build.
+IPA trên Releases vẫn chưa ký, cần ký lại để cài lên iPhone.
+
 Có thể tạo cùng IPA trên Mac bằng `sh build-ios.sh unsigned`.
 Script build Release `ios-arm64`, không ký Apple, kiểm tra kiến trúc/platform của
 binary rồi đóng gói `Payload/QuizDesk.iOS.app` vào `dist/ios/*.ipa`, kèm SHA-256.
@@ -531,16 +537,17 @@ trên PC/mobile, không cần cài Microsoft Office, LibreOffice, không gọi s
 - Không thêm định dạng cũ XLS/DOC trong đợt này. .quiz vẫn là bản sao lưu đầy đủ
   nhất cho media, cấu hình thi và thông tin cần rà soát của QuizDesk.
 
-Version hiển thị là **5.14.0**, Android versionCode **60103**, iOS build **18**.
-Chạy Actions với version/tag `v5.14.0`, hoặc để trống tag ở lượt chạy thủ công sau
+Version hiển thị là **5.15.0**, Android versionCode **60104**, iOS build **19**.
+Chạy Actions với version/tag `v5.15.0`, hoặc để trống tag ở lượt chạy thủ công sau
 khi commit/push source. Bộ đóng gói macOS tự đọc version từ project Desktop.
 
 ## Tự động build khi push
 
 Push lên `main` tự chạy Android, Windows, macOS và iOS. Workflow macOS tạo
-PKG riêng cho Apple Silicon/Intel. File build ở Artifacts (7 ngày); version mới
-tự đưa APK/EXE/PKG lên Releases. Push lại version đã phát hành vẫn build, nhưng
-giữ nguyên Release cũ. IPA chưa ký vẫn tải trong Artifacts. Xem
+DMG kéo vào Applications riêng cho Apple Silicon/Intel. File build ở Artifacts (7 ngày); version mới
+tự đưa APK/EXE/DMG lên Releases. Push lại version đã phát hành vẫn build, nhưng
+giữ nguyên Release cũ. IPA chưa ký kèm SHA-256 được đưa lên cùng Release; vẫn giữ bản
+trong Artifacts. Pull request không publish. Xem
 [hướng dẫn Actions](.github/RELEASES.md).
 
 ## Ngày giờ trên thanh đầu

@@ -5,13 +5,14 @@ if([string]::IsNullOrWhiteSpace($Tag)){
     [xml]$source=Get-Content -LiteralPath $project -Raw
     $Tag='v'+$source.SelectSingleNode('/Project/PropertyGroup/Version').InnerText
 }
-if($Tag -cnotmatch '^v([0-9]+\.[0-9]+\.[0-9]+)$'){throw 'Use a release tag such as v5.14.0 (three numeric components).'}
+if($Tag -cnotmatch '^v([0-9]+\.[0-9]+\.[0-9]+)$'){throw 'Use a release tag such as v5.15.0 (three numeric components).'}
 $version=$Matches[1]
 $root=Split-Path (Split-Path $PSScriptRoot)
 $projects=@{
     'Windows'=@('QuizDesk.Desktop/QuizDesk.Desktop.csproj','Version')
     'Android'=@('QuizDesk.Android/QuizDesk.Android.csproj','ApplicationDisplayVersion')
     'Shared UI'=@('QuizDesk.Mobile/QuizDesk.Mobile.csproj','Version')
+    'iOS'=@('QuizDesk.iOS/QuizDesk.iOS.csproj','ApplicationDisplayVersion')
 }
 foreach($name in $projects.Keys){
     $entry=$projects[$name];[xml]$xml=Get-Content -LiteralPath (Join-Path $root $entry[0]) -Raw

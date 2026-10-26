@@ -2,8 +2,14 @@ name: iOS build (Simulator and iPhone IPA)
 
 on:
   workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Optional tag matching source version; leave blank to use source version'
+        required: false
+        type: string
   push:
     branches: [main]
+    tags: ['v*']
   pull_request:
     branches: [main]
 
@@ -73,6 +79,10 @@ jobs:
 
   unsigned-ipa:
     name: Build unsigned IPA for iPhone
+    outputs:
+      tag: ${{ steps.version.outputs.tag }}
+      version: ${{ steps.version.outputs.version }}
+      commit: ${{ steps.version.outputs.commit }}
     runs-on: macos-26
     timeout-minutes: 45
     env:
@@ -85,6 +95,15 @@ jobs:
         with:
           ref: ${{ github.sha }}
           persist-credentials: false
+      - name: Validate release version
+        id: version
+        shell: pwsh
+        env:
+          RELEASE_TAG: ${{ github.event.inputs.tag || (github.ref_type == 'tag' && github.ref_name) || '' }}
+        run: ./.github/scripts/Get-ReleaseVersion.ps1 -Tag $env:RELEASE_TAG
+      - name: Test release publishing safety (no GitHub writes)
+        shell: pwsh
+        run: ./.github/scripts/Test-ReleasePublishing.ps1
       - name: Select Xcode 26.6
         shell: bash
         run: |
@@ -111,6 +130,28 @@ jobs:
           set -euo pipefail
           mkdir -p artifacts
           sh build-ios.sh unsigned 2>&1 | tee artifacts/ios-device-build.log
+      - name: Prepare versioned IPA and checksum for Releases
+        shell: pwsh
+        env:
+          RELEASE_VERSION: ${{ steps.version.outputs.version }}
+        run: |
+          $ErrorActionPreference='Stop'
+          $source='dist/ios/QuizDesk-ios-arm64-unsigned.ipa'
+          $hash=(Get-FileHash -LiteralPath $source -Algorithm SHA256).Hash.ToLowerInvariant()
+          $originalChecksum=([IO.File]::ReadAllText("$source.sha256").Trim() -split '\s+')[0]
+          if($hash -cne $originalChecksum){throw 'Built IPA does not match its original checksum.'}
+          New-Item -ItemType Directory -Path dist/release-ios -Force | Out-Null
+          $name="QuizDesk-$env:RELEASE_VERSION-ios-arm64-unsigned.ipa"
+          Copy-Item -LiteralPath $source -Destination "dist/release-ios/$name"
+          "$hash  $name" | Set-Content -LiteralPath "dist/release-ios/QuizDesk-$env:RELEASE_VERSION-iOS-unsigned-SHA256.txt" -Encoding ascii
+      - name: Save versioned IPA release artifact
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: release-ios-unsigned-${{ github.run_id }}
+          path: dist/release-ios/
+          if-no-files-found: error
+          retention-days: 7
+          overwrite: true
       - name: Upload unsigned IPA
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
@@ -128,3 +169,38 @@ jobs:
           path: artifacts/ios-device-build.log
           if-no-files-found: ignore
           retention-days: 7
+
+  publish:
+    name: Publish unsigned IPA to GitHub Releases
+    needs: unsigned-ipa
+    if: github.event_name != 'pull_request'
+    runs-on: windows-2025
+    timeout-minutes: 10
+    permissions:
+      contents: write
+    concurrency:
+      group: quizdesk-release-publish-${{ needs.unsigned-ipa.outputs.tag }}-ios-unsigned-${{ needs.unsigned-ipa.outputs.commit }}
+      cancel-in-progress: false
+    defaults:
+      run:
+        shell: pwsh
+    steps:
+      - name: Checkout verified source
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ needs.unsigned-ipa.outputs.commit }}
+          persist-credentials: false
+      - name: Download versioned IPA
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: release-ios-unsigned-${{ github.run_id }}
+          path: dist/release-ios
+      - name: Publish IPA and checksum
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_TAG: ${{ needs.unsigned-ipa.outputs.tag }}
+          RELEASE_COMMIT: ${{ needs.unsigned-ipa.outputs.commit }}
+          AUTOMATIC_PUSH: ${{ github.event_name == 'push' }}
+        run: ./.github/scripts/Publish-Release.ps1 -Tag $env:RELEASE_TAG -Commit $env:RELEASE_COMMIT -Platform ios-unsigned -Directory dist/release-ios -Automatic:($env:AUTOMATIC_PUSH -eq 'true')
+      - name: Explain IPA signing status
+        run: '"This IPA is unsigned and must be signed before installation on an iPhone. It is not a TestFlight/App Store build." | Out-File -LiteralPath $env:GITHUB_STEP_SUMMARY -Append -Encoding utf8'

@@ -103,7 +103,39 @@ foreach($arch in @('arm64','x64')){
     & $publish -Tag v5.11.0 -Commit $global:QDReleaseTestCommit -Platform "macos-$arch" -Directory $folder
     Check (@($global:QDReleaseTestCalls | Where-Object {$_ -like "release upload*macos-$arch*"}).Count -eq 2) "macOS $arch attaches its PKG and separate checksum to the shared release"
 }
-Write-Output 'All 24 release automation checks passed; gh was mocked (no network writes).'
+foreach($arch in @('arm64','x64')){
+    $dmg=Join-Path $folder "QuizDesk-5.11.0-macos-$arch.dmg";$dmgManifest=Join-Path $folder "QuizDesk-5.11.0-macos-$arch-DMG-SHA256.txt"
+    [IO.File]::WriteAllText($dmg,'Inert disk image fixture')
+    $dmgHash=(Get-FileHash $dmg).Hash.ToLowerInvariant();"$dmgHash  $([IO.Path]::GetFileName($dmg))" | Set-Content $dmgManifest -Encoding ascii
+    $global:QDReleaseTestCalls.Clear()
+    & $publish -Tag v5.11.0 -Commit $global:QDReleaseTestCommit -Platform "macos-$arch" -MacOSFormat dmg -Directory $folder
+    Check (@($global:QDReleaseTestCalls | Where-Object {$_ -like "release upload*macos-$arch*"}).Count -eq 2 -and @($global:QDReleaseTestCalls | Where-Object {$_ -like 'release upload*.pkg*'}).Count -eq 0) "macOS $arch publishes only DMG and its separate checksum"
+}
+$global:QDReleaseTestCalls.Clear()
+[IO.File]::WriteAllText($dmg,'tampered image')
+Reject {& $publish -Tag v5.11.0 -Commit $global:QDReleaseTestCommit -Platform macos-x64 -MacOSFormat dmg -Directory $folder} 'Tampered DMG is rejected before publication'
+Check ($global:QDReleaseTestCalls.Count -eq 0) 'DMG checksum failure causes no GitHub operation'
+$ipa=Join-Path $folder 'QuizDesk-5.11.0-ios-arm64-unsigned.ipa';$ipaManifest=Join-Path $folder 'QuizDesk-5.11.0-iOS-unsigned-SHA256.txt'
+[IO.File]::WriteAllText($ipa,'Inert IPA fixture')
+$ipaHash=(Get-FileHash $ipa).Hash.ToLowerInvariant();"$ipaHash  $([IO.Path]::GetFileName($ipa))" | Set-Content $ipaManifest -Encoding ascii
+$global:QDReleaseTestCalls.Clear();$global:QDReleaseTestAssets=@()
+& $publish -Tag v5.11.0 -Commit $global:QDReleaseTestCommit -Platform ios-unsigned -Directory $folder
+Check (@($global:QDReleaseTestCalls | Where-Object {$_ -like 'release upload*unsigned*'}).Count -eq 2 -and @($global:QDReleaseTestCalls | Where-Object {$_ -like 'release create*'}).Count -eq 0) 'Unsigned IPA and checksum attach to the shared existing release'
+$global:QDReleaseTestCalls.Clear()
+[IO.File]::WriteAllText($ipa,'tampered IPA')
+Reject {& $publish -Tag v5.11.0 -Commit $global:QDReleaseTestCommit -Platform ios-unsigned -Directory $folder} 'Tampered IPA is rejected before publication'
+Check ($global:QDReleaseTestCalls.Count -eq 0) 'IPA checksum failure causes no GitHub operation'
+[IO.File]::WriteAllText($ipa,'Inert IPA fixture')
+$global:QDReleaseTestAssets=@($ipa,$ipaManifest) | ForEach-Object { @{name=[IO.Path]::GetFileName($_);digest=('sha256:'+(Get-FileHash $_).Hash.ToLowerInvariant())} }
+& $publish -Tag v5.11.0 -Commit $global:QDReleaseTestCommit -Platform ios-unsigned -Directory $folder
+Check (@($global:QDReleaseTestCalls | Where-Object {$_ -like 'release upload*'}).Count -eq 0) 'Identical existing IPA assets are not uploaded again'
+$global:QDReleaseTestCalls.Clear();$global:QDReleaseTestTagCommit='bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb'
+& $publish -Tag v5.11.0 -Commit $global:QDReleaseTestCommit -Platform ios-unsigned -Directory $folder -Automatic
+Check (@($global:QDReleaseTestCalls | Where-Object {$_ -like 'release *' -or $_ -like 'api --method POST*'}).Count -eq 0) 'IPA automatic push preserves a version tag assigned to another commit'
+$global:QDReleaseTestTagCommit=$global:QDReleaseTestCommit
+Write-Output 'All 33 release automation checks passed; gh was mocked (no network writes).'
+
+
 } finally {
     foreach($key in $originalEnvironment.Keys){[Environment]::SetEnvironmentVariable($key,$originalEnvironment[$key])}
     Remove-Variable -Name QDReleaseTestCalls,QDReleaseTestExists,QDReleaseTestAssets,QDReleaseTestDraft,QDReleaseTestCommit,QDReleaseTestTagCommit,QDReleaseTestTagExists,QDReleaseTestAnnotated,QDReleaseTestForbidden,QDReleaseTestTagRace,QDReleaseTestReleaseRace -Scope Global -ErrorAction SilentlyContinue

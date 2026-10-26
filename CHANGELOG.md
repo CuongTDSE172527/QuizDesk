@@ -1,3 +1,20 @@
+# QuizDesk 5.15.0 — 26/10/2026
+
+- Actions iOS xuất IPA chưa ký và SHA-256 lên GitHub Releases cùng version/tag với các nền tảng.
+  Tự chạy khi push main/tag, hỗ trợ chạy thủ công; PR chỉ build, giữ Artifacts/log.
+  Kiểm tra version iOS, checksum và commit; không di chuyển tag hoặc ghi đè asset đã phát hành.
+
+- Thêm DMG macOS ARM64/Intel: kéo QuizDesk vào Applications, không qua script PKG.
+  Actions kiểm tra ảnh đĩa, mount và sao chép app rồi kiểm tra chữ ký/version/kiến trúc.
+  Releases macOS dùng DMG; PKG giữ trong Artifacts để chẩn đoán, không còn publish PKG mới.
+  Chưa có Developer ID/notarization; chưa kết luận nguyên nhân PKG lỗi trên máy người dùng.
+
+- Actions macOS ARM64 cài thử PKG thật trên runner Apple Silicon để chẩn đoán;
+  kiểm tra version, kiến trúc và chữ ký sau cài. Lưu log installer/codesign; lỗi cài PKG
+  không chặn phát hành DMG đã qua kiểm tra riêng.
+
+- Đồng bộ version 5.15.0; Android versionCode 60104, iOS build 19.
+
 # QuizDesk 5.14.0 — 26/10/2026
 
 - Thêm ngày/tháng/năm và giờ 24 giờ cạnh nút hướng dẫn: dd/MM/yyyy · HH:mm:ss.

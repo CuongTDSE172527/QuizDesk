@@ -6,8 +6,8 @@ Sau khi commit và **push lên `main`**, bốn workflow tự chạy:
 | --- | --- |
 | Android APK release | APK đã ký + SHA-256 |
 | Windows EXE release | Bộ cài Windows x64 EXE + SHA-256 |
-| macOS PKG release | Hai bộ cài PKG Apple Silicon (arm64) và Intel (x64) + SHA-256 riêng |
-| iOS build (Simulator and iPhone IPA) | App Simulator, IPA chưa ký và log trong Artifacts |
+| macOS DMG release | Hai ảnh đĩa DMG Apple Silicon (arm64) và Intel (x64) + SHA-256 riêng |
+| iOS build (Simulator and iPhone IPA) | IPA chưa ký + SHA-256 lên Releases; Simulator/IPA/log vẫn ở Artifacts |
 
 Mọi push `main` đều kích hoạt, kể cả chỉ sửa tài liệu. Checkout được ghim đúng
 `github.sha` của sự kiện, nên push tiếp không làm lượt chạy trước build nhầm commit.
@@ -20,26 +20,27 @@ chưa có. Với push tự động, nếu version đã thuộc commit khác ho�
 của platform đó, bước publish báo bỏ qua và giữ nguyên file cũ; bản build mới
 vẫn tải được trong Artifacts. Muốn phát hành code mới, tăng version rồi push.
 Chạy thủ công vẫn kiểm tra xung đột tag/file nghiêm ngặt, không ghi đè binary.
-iOS hiện chỉ lưu Artifacts, không tự đưa IPA lên Releases hoặc TestFlight.
+iOS đưa IPA chưa ký và SHA-256 lên cùng Release sau khi build thành công; Simulator
+và log vẫn ở Artifacts. Pull request chỉ build, không publish. Không upload TestFlight.
 
 ## macOS
 
 Workflow build trên runner `macos-26`, tạo hai bản self-contained từ cùng commit:
 `osx-arm64` cho Apple Silicon, `osx-x64` cho Intel. Bản Intel được cross-publish
-trên runner Apple Silicon. Dùng `pkgbuild`/`productbuild` của macOS để tạo bộ cài
-vào `/Applications/QuizDesk.app`; không tải công cụ đóng gói ngoài.
+trên runner Apple Silicon. Dùng `hdiutil` của macOS để tạo DMG kéo thả vào Applications.
 
 ```text
-QuizDesk-Setup-X.Y.Z-macos-arm64.pkg
-QuizDesk-X.Y.Z-macos-arm64-SHA256.txt
-QuizDesk-Setup-X.Y.Z-macos-x64.pkg
-QuizDesk-X.Y.Z-macos-x64-SHA256.txt
+QuizDesk-X.Y.Z-macos-arm64.dmg
+QuizDesk-X.Y.Z-macos-arm64-DMG-SHA256.txt
+QuizDesk-X.Y.Z-macos-x64.dmg
+QuizDesk-X.Y.Z-macos-x64-DMG-SHA256.txt
 ```
 
 Cần cả hai job build thành công trước khi publish macOS. Mỗi kiến trúc có
-artifact/checksum riêng, không đè lên nhau. App được ký ad-hoc trên runner và
-kiểm tra lại sau cài; PKG chưa có chữ ký Developer ID/notarization. Không cần
-Apple signing secret cho luồng build thử này. Chưa chạy thử bộ cài mới trên Mac thật.
+artifact/checksum riêng. App được ký ad-hoc trên runner và kiểm tra lại sau khi
+sao chép khỏi DMG; chưa có Developer ID/notarization. Không cần Apple signing
+secret cho luồng build thử này. Chưa chạy thử giao diện trên Mac người dùng.
+PKG vẫn tạo riêng để chẩn đoán; không publish lên Releases mới.
 
 ## Thiết lập Android một lần
 
@@ -88,14 +89,14 @@ môi trường của .NET Android; keystore được xóa khỏi runner sau khi 
    Tăng cả `ApplicationVersion` Android (số nguyên lớn hơn bản đã phát hành,
    hiện bản gốc là 60100). Nếu cập nhật iOS cùng đợt, đồng bộ version/build iOS.
    Inno Setup nhận version trực tiếp từ CI, không cần sửa tên bộ cài thủ công.
-3. Commit/push các thay đổi version, rồi tạo tag khớp source, ví dụ `v5.14.0`:
+3. Commit/push các thay đổi version, rồi tạo tag khớp source, ví dụ `v5.15.0`:
 
 ```powershell
-git tag v5.14.0
-git push origin v5.14.0
+git tag v5.15.0
+git push origin v5.15.0
 ```
 
-4. Theo dõi cả Android APK release, Windows EXE release và macOS PKG release.
+4. Theo dõi cả Android APK release, Windows EXE release và macOS DMG release.
 5. Với version mới, file được đưa vào cùng Release `QuizDesk X.Y.Z`:
 
 ```text
@@ -114,7 +115,7 @@ EXE hiện không ký Authenticode; workflow không thêm chứng chỉ Windows.
 Sau khi commit/push thay đổi lên nhánh mặc định:
 
 1. Vào workflow tương ứng → **Run workflow** → chọn nhánh `main`.
-2. Để trống ô `tag` để dùng version source (hiện là `v5.14.0`), hoặc nhập tag
+2. Để trống ô `tag` để dùng version source (hiện là `v5.15.0`), hoặc nhập tag
    khớp version. Không cần tự tạo tag trước khi chạy thủ công.
 3. Nếu chạy thủ công, chạy cả Windows/Android/macOS trên cùng commit; hoặc chỉ
    push `main` để cả bốn workflow tự bắt đầu.
@@ -146,7 +147,7 @@ Build lại toàn bộ có thể tạo bytes khác do thời gian đóng gói, n
 
 - Chạy 24 kiểm thử publish giả lập (không ghi GitHub), 19 kiểm thử nhập nhiều file,
   30 gộp đề, 39 media và 25 xuất định dạng/trích câu và 25 xuất Office trước khi đóng gói.
-- macOS có thêm 6 kiểm thử logic đóng gói với Apple tools giả lập.
+- macOS có 11 kiểm thử logic đóng gói với Apple tools giả lập.
 - Kiểm tra SHA-256 artifact tải xuống trước khi publish.
 - Actions được pin vào commit SHA của bản chính thức.
 - Build job chỉ có `contents: read`; publish job mới có `contents: write`.
@@ -155,3 +156,45 @@ Build lại toàn bộ có thể tạo bytes khác do thời gian đóng gói, n
   tag mới chỉ được tạo trong job publish sau khi build thành công.
 - Android cần GitHub Secrets trước lượt chạy đầu; Windows không cần signing secret.
 - Chưa chạy build APK/EXE hoặc publish thật trên GitHub cho các workflow mới.
+
+## macOS DMG và chẩn đoán PKG
+
+Actions đóng gói `QuizDesk-<version>-macos-arm64.dmg` (chip M) và
+`QuizDesk-<version>-macos-x64.dmg` (Intel), kèm `DMG-SHA256.txt` riêng.
+Releases macOS dùng DMG. Mở ảnh đĩa, kéo QuizDesk.app vào Applications rồi eject.
+Ứng dụng chưa có Developer ID/notarization; DMG chỉ thay luồng cài PKG.
+
+Build phải qua `hdiutil verify`, mount chỉ đọc, kiểm tra version/kiến trúc/chữ ký
+và sao chép bundle ra khỏi ảnh đĩa rồi xác minh lại chữ ký. Chưa kiểm thử chạy UI.
+PKG vẫn giữ trong Actions Artifacts cho việc chẩn đoán, không upload PKG mới lên Releases.
+Cài thử PKG ARM64 thất bại sẽ hiện trong step summary và artifact `macos-install-logs-arm64-…`;
+không chặn DMG đã kiểm tra độc lập. Lỗi build/kiểm tra DMG vẫn chặn publication.
+
+Bản đã phát hành không bị thay thế. Nếu `v5.14.0` đã trỏ tới commit khác,
+DMG của commit mới chỉ nằm trong Actions Artifacts. Muốn publish bản sửa,
+tăng version đồng bộ rồi push để tạo release mới theo quy trình hiện tại.
+
+## IPA trên GitHub Releases
+
+Workflow iOS chạy khi push `main`, push tag `v*`, pull request vào `main`, hoặc Run workflow.
+Job `Publish unsigned IPA to GitHub Releases` chỉ chạy khi job `unsigned-ipa` thành công
+và sự kiện không phải pull request. Job build chỉ có quyền đọc; job publish có `contents: write`.
+Checkout và release tag dùng đúng commit đã build; kiểm tra version iOS đồng bộ với các nền tảng.
+
+File tải trực tiếp trong Releases:
+
+```text
+QuizDesk-X.Y.Z-ios-arm64-unsigned.ipa
+QuizDesk-X.Y.Z-iOS-unsigned-SHA256.txt
+```
+
+IPA gốc được đối chiếu checksum trước khi đổi tên, rồi kiểm tra SHA-256 lần nữa sau
+khi tải Artifact về job publish. Giữ thêm IPA/log ở Actions Artifacts trong 7 ngày.
+Đây là IPA chưa ký: cần ký trước khi cài iPhone, không phải bản TestFlight/App Store.
+Không cần thêm Apple signing secrets cho luồng build chưa ký hiện tại.
+Version đã gắn tag ở commit khác không bị thay thế; tăng version để publish commit mới.
+Lượt chạy lại cùng commit bỏ qua asset giống hệt và từ chối file khác nội dung.
+Run workflow có tag tùy chọn; bỏ trống để lấy version từ source như Android/Windows/macOS.
+
+Version hiện tại là **5.15.0** (Android 60104, iOS build 19), đã chuẩn bị cho release
+mới chứa DMG macOS và IPA chưa ký. Commit/push main để Actions build và publish.

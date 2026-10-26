@@ -12,3 +12,7 @@ if($LASTEXITCODE -ne 0){throw 'macOS app bundle packaging failed.'}
 $destination=Join-Path $root "dist/release-macos-$Architecture/QuizDesk-Setup-$Version-macos-$Architecture.pkg"
 & python3 (Join-Path $root 'Installer/macOS/build-native-installer.py') --app (Join-Path $bundle 'QuizDesk.app') --output $destination --arch $Architecture --version $Version
 if($LASTEXITCODE -ne 0){throw 'Native macOS installer packaging failed.'}
+
+$dmg=Join-Path $root "dist/release-macos-$Architecture/QuizDesk-$Version-macos-$Architecture.dmg"
+& python3 (Join-Path $root 'Installer/macOS/build-dmg.py') --app (Join-Path $bundle 'QuizDesk.app') --output $dmg --arch $Architecture --version $Version
+if($LASTEXITCODE -ne 0){throw 'macOS disk image packaging/verification failed.'}

@@ -1,22 +1,25 @@
-QUIZDESK 4.1 — macOS preview
+QUIZDESK — macOS
 
-Chọn arm64 cho Apple Silicon (M1/M2/M3/M4/...), x64 cho Mac Intel.
+Chọn arm64 cho Mac Apple Silicon (chip M), x64 cho Mac Intel.
 Yêu cầu macOS 14 trở lên. Đã kèm .NET runtime; không cần Microsoft Office.
 
-Giải nén .tar.gz bằng Archive Utility hoặc tar -xzf, giữ nguyên QuizDesk.app.
-Bản này được build trên Windows, chưa chạy thử trên máy Mac và chưa được ký
-Developer ID/notarize. Không coi đây là bản Mac đã nghiệm thu.
+Bản DMG:
+1. Đóng QuizDesk nếu đang chạy.
+2. Mở file .dmg, kéo QuizDesk.app vào Applications.
+3. Nếu cập nhật, chọn thay thế ứng dụng cũ. Không xoá thư mục dữ liệu người dùng.
+4. Eject ảnh đĩa rồi mở QuizDesk trong Applications.
 
-Để kiểm tra cục bộ trên Mac, mở Terminal tại thư mục đã giải nén rồi chạy:
-  sh prepare-local-macos.sh ./QuizDesk.app
-Sau đó mở QuizDesk.app. Script chỉ ký ad-hoc để phát triển, không notarize.
-Nếu macOS chặn app tải về, dùng chức năng Open Anyway trong Privacy & Security
-chỉ khi bạn tin cậy chính bản build này; không cần tắt Gatekeeper toàn hệ thống.
+Bản tar.gz: giải nén bằng Archive Utility và chép QuizDesk.app vào Applications.
+PKG hiện chỉ giữ trong Actions Artifacts để chẩn đoán lỗi cài đặt.
 
-Settings lưu tại ~/Library/Application Support/QuizDesk/settings.json.
-File .quiz dùng chung với Windows; chép file sang Mac rồi nhập trong app.
+Ứng dụng được ký ad-hoc, chưa có Developer ID hoặc notarization.
+Nếu macOS chặn vì nhà phát triển chưa xác minh, chỉ dùng Open Anyway trong
+System Settings > Privacy & Security khi bạn tin cậy chính bản build này.
+Không cần tắt Gatekeeper toàn hệ thống. DMG không thay thế notarization.
 
-Cần kiểm thử trên Mac trước khi phân phối: chọn/lưu file, DOC/DOCX/XLS/RTF,
-tiếng Việt, sáng/tối/theo hệ thống, sửa/xóa/lưu đề, ôn tập, thi và tự nộp.
-Để phát hành rộng rãi cần ký Developer ID và notarization trên môi trường Mac.
+Bộ đề, Settings và Lịch sử được lưu riêng trong tài khoản người dùng.
+Settings: ~/Library/Application Support/QuizDesk/settings.json.
+File .quiz dùng chung với Windows và mobile.
 
+Actions kiểm tra đóng gói, ảnh đĩa và chữ ký app sau khi sao chép.
+Vẫn cần chạy thử giao diện và các luồng nhập/lưu đề, học/thi trên máy Mac thực tế.

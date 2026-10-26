@@ -1,4 +1,4 @@
-name: macOS PKG release
+name: macOS DMG release
 
 on:
   push:
@@ -67,6 +67,26 @@ jobs:
           RELEASE_VERSION: ${{ steps.version.outputs.version }}
           PACKAGE_ARCH: ${{ matrix.architecture }}
         run: ./.github/scripts/Build-MacOSInstaller.ps1 -Architecture $env:PACKAGE_ARCH -Version $env:RELEASE_VERSION
+      # PKG is diagnostic-only; Releases distribute the independently verified DMG.
+      - name: Install and verify PKG on Apple Silicon
+        id: pkg_install
+        if: matrix.architecture == 'arm64'
+        continue-on-error: true
+        env:
+          RELEASE_VERSION: ${{ steps.version.outputs.version }}
+        run: python3 .github/scripts/test_macos_install.py --package "dist/release-macos-arm64/QuizDesk-Setup-$env:RELEASE_VERSION-macos-arm64.pkg" --version $env:RELEASE_VERSION --logs dist/macos-install-logs
+      - name: Save Apple Silicon installation diagnostics
+        if: always() && matrix.architecture == 'arm64'
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: macos-install-logs-arm64-${{ github.run_id }}
+          path: dist/macos-install-logs/
+          if-no-files-found: ignore
+          retention-days: 7
+          overwrite: true
+      - name: Report diagnostic PKG installation failure
+        if: steps.pkg_install.outcome == 'failure'
+        run: '"PKG installation failed. See macos-install-logs; Releases use the verified DMG, not this PKG." | Out-File -LiteralPath $env:GITHUB_STEP_SUMMARY -Append -Encoding utf8'
       - name: Save macOS installer and checksum
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
@@ -111,4 +131,4 @@ jobs:
           RELEASE_COMMIT: ${{ needs.build.outputs.commit }}
           PACKAGE_ARCH: ${{ matrix.architecture }}
           AUTOMATIC_PUSH: ${{ github.event_name == 'push' }}
-        run: ./.github/scripts/Publish-Release.ps1 -Tag $env:RELEASE_TAG -Commit $env:RELEASE_COMMIT -Platform "macos-$env:PACKAGE_ARCH" -Directory "dist/release-macos-$env:PACKAGE_ARCH" -Automatic:($env:AUTOMATIC_PUSH -eq 'true')
+        run: ./.github/scripts/Publish-Release.ps1 -MacOSFormat dmg -Tag $env:RELEASE_TAG -Commit $env:RELEASE_COMMIT -Platform "macos-$env:PACKAGE_ARCH" -Directory "dist/release-macos-$env:PACKAGE_ARCH" -Automatic:($env:AUTOMATIC_PUSH -eq 'true')

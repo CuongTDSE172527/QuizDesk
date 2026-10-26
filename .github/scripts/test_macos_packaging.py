@@ -99,5 +99,76 @@ class MacPackageTests(unittest.TestCase):
             run.assert_not_called()
 
 
+dmg_spec = importlib.util.spec_from_file_location('dmg_builder', REPO / 'Installer/macOS/build-dmg.py')
+dmg = importlib.util.module_from_spec(dmg_spec)
+dmg_spec.loader.exec_module(dmg)
+
+
+class DmgTests(unittest.TestCase):
+    fixture = MacPackageTests.fixture
+    def check_dmg(self, arch, fail_copy=False):
+        import shutil
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            app = self.fixture(root, arch)
+            output = root / f'QuizDesk-5.13.0-macos-{arch}.dmg'
+            calls = []
+            payload = None
+            def fake_run(*arguments):
+                nonlocal payload
+                args = list(map(str, arguments)); calls.append(args)
+                if Path(args[0]).name == 'hdiutil':
+                    if args[1] == 'create':
+                        payload = Path(args[args.index('-srcfolder') + 1])
+                        output.write_bytes(b'inert-dmg-fixture')
+                    elif args[1] == 'attach':
+                        mount = Path(args[args.index('-mountpoint') + 1])
+                        shutil.copytree(payload, mount, dirs_exist_ok=True, symlinks=True)
+                elif fail_copy and Path(args[-1]).parent.name == 'copied':
+                    raise RuntimeError('copied signature invalid')
+            # Windows test hosts cannot create Unix symlinks without elevated rights.
+            # Represent the shortcut as a file here; native CI checks the actual symlink.
+            with patch.object(dmg.sys, 'platform', 'darwin'), patch.object(dmg, 'run', fake_run), \
+                 patch.object(Path, 'symlink_to', lambda self, target, **kw: self.write_text(str(target))), \
+                 patch.object(Path, 'is_symlink', lambda self: self.name == 'Applications'), \
+                 patch.object(Path, 'readlink', return_value=Path('/Applications')):
+                if fail_copy:
+                    with self.assertRaisesRegex(RuntimeError, 'copied signature invalid'):
+                        dmg.build(app, output, arch, '5.13.0')
+                else:
+                    dmg.build(app, output, arch, '5.13.0')
+            self.assertEqual([c[1] for c in calls if Path(c[0]).name == 'hdiutil'], ['create', 'verify', 'attach', 'detach'])
+            manifest = root / f'QuizDesk-5.13.0-macos-{arch}-DMG-SHA256.txt'
+            if fail_copy:
+                self.assertFalse(manifest.exists())
+            else:
+                self.assertEqual(manifest.read_text(), f'{hashlib.sha256(output.read_bytes()).hexdigest()}  {output.name}\n')
+                self.assertEqual(len([c for c in calls if Path(c[0]).name == 'codesign']), 3)
+
+    def test_arm64_dmg_mount_copy_and_checksum(self):
+        self.check_dmg('arm64')
+
+    def test_x64_dmg_mount_copy_and_checksum(self):
+        self.check_dmg('x64')
+
+    def test_failed_copied_signature_detaches_and_has_no_manifest(self):
+        self.check_dmg('arm64', fail_copy=True)
+
+    def test_dmg_wrong_architecture_rejected_without_apple_commands(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            app = self.fixture(temporary)
+            with patch.object(dmg.sys, 'platform', 'darwin'), patch.object(dmg, 'run') as run:
+                with self.assertRaises(SystemExit): dmg.build(app, Path(temporary) / 'out.dmg', 'x64', '5.13.0')
+                run.assert_not_called()
+
+    def test_existing_dmg_is_not_overwritten(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            app = self.fixture(temporary)
+            output = Path(temporary) / 'existing.dmg'; output.write_bytes(b'original')
+            with patch.object(dmg.sys, 'platform', 'darwin'), patch.object(dmg, 'run'):
+                with self.assertRaises(SystemExit): dmg.build(app, output, 'arm64', '5.13.0')
+            self.assertEqual(output.read_bytes(), b'original')
+
+
 if __name__ == '__main__':
     unittest.main()

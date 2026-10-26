@@ -1,8 +1,9 @@
 param(
     [Parameter(Mandatory)][ValidatePattern('^v[0-9]+\.[0-9]+\.[0-9]+$')][string]$Tag,
     [Parameter(Mandatory)][ValidatePattern('^[a-fA-F0-9]{40}$')][string]$Commit,
-    [Parameter(Mandatory)][ValidateSet('android','windows','macos-arm64','macos-x64')][string]$Platform,
+    [Parameter(Mandatory)][ValidateSet('android','windows','macos-arm64','macos-x64','ios-unsigned')][string]$Platform,
     [Parameter(Mandatory)][string]$Directory,
+    [ValidateSet('pkg','dmg')][string]$MacOSFormat='pkg',
     [switch]$Automatic
 )
 $ErrorActionPreference='Stop'
@@ -10,8 +11,13 @@ $ErrorActionPreference='Stop'
 $PSNativeCommandUseErrorActionPreference=$false
 if(-not $env:GH_TOKEN -or -not $env:GITHUB_REPOSITORY){throw 'GitHub token and repository context required.'}
 $version=$Tag.Substring(1)
-$asset=switch($Platform){android{"QuizDesk-$version-Android.apk"} windows{"QuizDesk-Setup-$version-x64.exe"} default{"QuizDesk-Setup-$version-$Platform.pkg"}}
-$manifest=switch($Platform){android{"QuizDesk-$version-Android-SHA256.txt"} windows{"QuizDesk-$version-Windows-SHA256.txt"} default{"QuizDesk-$version-$Platform-SHA256.txt"}}
+$asset=switch($Platform){android{"QuizDesk-$version-Android.apk"} windows{"QuizDesk-Setup-$version-x64.exe"} ios-unsigned{"QuizDesk-$version-ios-arm64-unsigned.ipa"} default{"QuizDesk-Setup-$version-$Platform.pkg"}}
+$manifest=switch($Platform){android{"QuizDesk-$version-Android-SHA256.txt"} windows{"QuizDesk-$version-Windows-SHA256.txt"} ios-unsigned{"QuizDesk-$version-iOS-unsigned-SHA256.txt"} default{"QuizDesk-$version-$Platform-SHA256.txt"}}
+if($MacOSFormat -eq 'dmg'){
+    if($Platform -notlike 'macos-*'){throw 'DMG publication requires a macOS platform.'}
+    $asset="QuizDesk-$version-$Platform.dmg"
+    $manifest="QuizDesk-$version-$Platform-DMG-SHA256.txt"
+}
 $files=@((Join-Path $Directory $asset),(Join-Path $Directory $manifest))
 foreach($file in $files){if(-not (Test-Path -LiteralPath $file -PathType Leaf)){throw "Release file missing: $file"}}
 $actual=(Get-FileHash -LiteralPath $files[0] -Algorithm SHA256).Hash.ToLowerInvariant()
