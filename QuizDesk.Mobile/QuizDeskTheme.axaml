@@ -94,6 +94,24 @@
   <Style Selector="Button.nav.selected Border.navIndicator"><Setter Property="Background" Value="{DynamicResource QDSecondaryContainer}" /></Style>
   <Style Selector="Button.nav.selected TextBlock"><Setter Property="FontWeight" Value="SemiBold" /><Setter Property="Foreground" Value="{DynamicResource QDOnSurface}" /></Style>
 
+  <Style Selector="Border.bankSelectionCard">
+    <Setter Property="Background" Value="{DynamicResource QDContainerLow}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource QDOutlineVariant}" />
+    <Setter Property="BorderThickness" Value="2" /><Setter Property="CornerRadius" Value="14" />
+  </Style>
+  <Style Selector="Border.bankSelectionCard.selected">
+    <Setter Property="Background" Value="{DynamicResource QDPrimaryContainer}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource QDPrimary}" />
+  </Style>
+  <Style Selector="ToggleButton.bankSelection">
+    <Setter Property="Background" Value="Transparent" /><Setter Property="BorderBrush" Value="Transparent" />
+    <Setter Property="Foreground" Value="{DynamicResource QDOnSurface}" /><Setter Property="Padding" Value="14,14,14,10" />
+    <Setter Property="BorderThickness" Value="2" /><Setter Property="CornerRadius" Value="12" />
+    <Setter Property="Template"><ControlTemplate><Border Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}" CornerRadius="{TemplateBinding CornerRadius}" Padding="{TemplateBinding Padding}"><ContentPresenter Content="{TemplateBinding Content}" HorizontalContentAlignment="{TemplateBinding HorizontalContentAlignment}" /></Border></ControlTemplate></Setter>
+  </Style>
+  <Style Selector="ToggleButton.bankSelection:pointerover"><Setter Property="Background" Value="{DynamicResource QDStateLayer}" /></Style>
+  <Style Selector="ToggleButton.bankSelection:focus-visible"><Setter Property="BorderBrush" Value="{DynamicResource QDPrimary}" /></Style>
+
   <Style Selector="ToggleButton.choice, ToggleButton.jump">
     <Setter Property="Background" Value="{DynamicResource QDSurface}" /><Setter Property="Foreground" Value="{DynamicResource QDOnSurface}" />
     <Setter Property="BorderBrush" Value="{DynamicResource QDOutlineVariant}" /><Setter Property="BorderThickness" Value="2" /><Setter Property="CornerRadius" Value="12" />

@@ -77,12 +77,13 @@ public partial class MainView : UserControl {
         if(restoredExam!=null&&historyStore.Load(out _).Any(a=>a.Id==restoredExam.Id)){try{workspace.Complete(restoredExam.Id);}catch(IOException){}restoredExam=null;}
         ApplyTheme();Tone(this,BackgroundProperty,"Surface");Tone(this,ForegroundProperty,"OnSurface");
         shell.RowDefinitions=new RowDefinitions("Auto,*,Auto");
-        var header=appBar=new Grid {ColumnDefinitions=new ColumnDefinitions("*,Auto,Auto"),Margin=new Thickness(20,4,12,4),MinHeight=64};
-        var brand=Text("QuizDesk",22);brand.FontWeight=FontWeight.SemiBold;
+        var header=appBar=new Grid {ColumnDefinitions=new ColumnDefinitions("*,Auto,Auto,Auto"),Margin=new Thickness(20,4,12,4),MinHeight=64};
+        var brand=brandName=Text("QuizDesk",22);brand.FontWeight=FontWeight.SemiBold;
         var mark=new Image {Source=BrandLogo.Value,Width=36,Height=36};
         var identity=new StackPanel {Orientation=Orientation.Horizontal,Spacing=10,VerticalAlignment=VerticalAlignment.Center,Children={mark,brand}};header.Children.Add(identity);
-        var help=IconButton("Trợ giúp","help",()=>Navigate("help"));Grid.SetColumn(help,1);header.Children.Add(help);navButtons["help"]=help;
-        var settings=IconButton("Cài đặt","preferences",()=>Navigate("preferences"));Grid.SetColumn(settings,2);header.Children.Add(settings);navButtons["preferences"]=settings;
+        Grid.SetColumn(headerDateTime,1);ToolTip.SetTip(headerDateTime,"Ngày giờ thiết bị · định dạng 24 giờ");header.Children.Add(headerDateTime);UpdateHeaderDateTime();
+        var help=IconButton("Trợ giúp","help",()=>Navigate("help"));Grid.SetColumn(help,2);header.Children.Add(help);navButtons["help"]=help;
+        var settings=IconButton("Cài đặt","preferences",()=>Navigate("preferences"));Grid.SetColumn(settings,3);header.Children.Add(settings);navButtons["preferences"]=settings;
         shell.Children.Add(header);
         var container=contentContainer=new Grid {RowDefinitions=new RowDefinitions("Auto,*")};notice.Child=noticeText;container.Children.Add(notice);
         pageScroll=new ScrollViewer {Content=page,HorizontalScrollBarVisibility=ScrollBarVisibility.Disabled};Grid.SetRow(pageScroll,1);container.Children.Add(pageScroll);Grid.SetRow(container,1);shell.Children.Add(container);
@@ -93,7 +94,9 @@ public partial class MainView : UserControl {
         outer.Children.Add(shell);outer.Children.Add(modal);Content=outer;TopLevel.SetAutoSafeAreaPadding(this,true);
         page.MaxWidth=1040;SizeChanged+=(_,_)=>AdaptLayout();
         timer.Tick+=(_,_)=>Tick();
+        headerDateTimeTimer.Tick+=(_,_)=>UpdateHeaderDateTime();
         AttachedToVisualTree+=(_,_)=>{
+            UpdateHeaderDateTime();headerDateTimeTimer.Start();
             MobilePlatform.IncomingQuiz+=IncomingChanged;IncomingChanged();
             if(Host!=null)Host.BackRequested+=HandleBack;
             if(restoredExam!=null){var state=restoredExam;restoredExam=null;RestoreExam(state);}else if(restoredStudy?.InProgress==true){var state=restoredStudy;restoredStudy=null;OpenStudy(state);}else if(active&&!practice)timer.Start();
@@ -101,7 +104,7 @@ public partial class MainView : UserControl {
             if(!qaStarted){qaStarted=true;Dispatcher.UIThread.Post(async()=>await VerifyMobile());}
 #endif
         };
-        DetachedFromVisualTree+=(_,_)=>{MobilePlatform.IncomingQuiz-=IncomingChanged;PersistSession();timer.Stop();if(Host!=null)Host.BackRequested-=HandleBack;};
+        DetachedFromVisualTree+=(_,_)=>{headerDateTimeTimer.Stop();MobilePlatform.IncomingQuiz-=IncomingChanged;PersistSession();timer.Stop();if(Host!=null)Host.BackRequested-=HandleBack;};
         Navigate("home");string warning=string.Join(" ",new[]{settingsWarning,draftWarning,examWarning,libraryWarning,studyWarning}.Where(s=>s!=""));if(warning!="")Notify(warning,true);
     }
     static TextBlock Text(string value,double size=14)=>new() {Text=value,FontSize=size,TextWrapping=TextWrapping.Wrap,LineHeight=size*1.4};

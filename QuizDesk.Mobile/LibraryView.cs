@@ -1,6 +1,8 @@
 using Avalonia;
 using Avalonia.Automation;
 using Avalonia.Controls;
+using Avalonia.Controls.Primitives;
+using Avalonia.VisualTree;
 using Avalonia.Layout;
 using Avalonia.Media;
 using Avalonia.Threading;
@@ -12,7 +14,7 @@ public partial class MainView {
     Guid? currentBankId,expandedBankId;
     bool selectingBanks;
     readonly HashSet<Guid> selectedBanks=new();
-    readonly Dictionary<Guid,CheckBox> libraryChecks=new();
+    readonly Dictionary<Guid,ToggleButton> librarySelections=new();
     Button deleteBanksButton,mergeBanksButton;
     List<LibraryBankSummary> libraryItems=new();
     TextBlock bankSelectionSummary;
@@ -25,8 +27,8 @@ public partial class MainView {
     void ResetCurrentBank(){currentBankId=null;expandedBankId=null;bank=new();setup=preferences.CreateSetup(bank);title="Bộ đề chưa đặt tên";dirty=false;questionList=null;}
     static string Stamp(DateTimeOffset value)=>value.ToLocalTime().ToString("dd/MM/yyyy · HH:mm:ss",System.Globalization.CultureInfo.InvariantCulture);
     void Bank() {
-        questionList=null;selectionSummary=null;openedBankCount=null;openedBankDates=null;libraryChecks.Clear();
-        Heading("Thư viện của bạn","Bộ đề đã lưu","Nhấn vào tên bộ đề để mở hoặc thu gọn phần biên soạn.");
+        questionList=null;selectionSummary=null;openedBankCount=null;openedBankDates=null;librarySelections.Clear();
+        Heading("Thư viện của bạn","Bộ đề đã lưu",selectingBanks?"Nhấn vào khung để chọn hoặc bỏ chọn bộ đề.":"Nhấn vào tên bộ đề để mở hoặc thu gọn phần biên soạn.");
         page.Children.Add(Row(Btn("＋ Nhập file",Import,true),Btn("Tạo bộ đề",NewBank),Btn("Lịch sử nhập",ShowImportHistory)));
         int waiting=Inbox.List().Count;if(waiting>0)page.Children.Add(Btn($"File nhận đang chờ ({waiting})",ReviewDeferredFiles));
         List<LibraryBankSummary> items;
@@ -40,25 +42,37 @@ public partial class MainView {
             bankSelectionSummary=Supporting("",13);page.Children.Add(bankSelectionSummary);
             mergeBanksButton=Btn("Trích câu / gộp",MergeSelectedBanks,true);mergeBanksButton.IsEnabled=false;
             deleteBanksButton=Btn("Xóa đã chọn",DeleteSelectedBanks);deleteBanksButton.IsEnabled=false;
-            page.Children.Add(Row(Btn("Chọn tất cả bộ đề",()=>{foreach(var check in libraryChecks.Values)check.IsChecked=true;}),Btn("Bỏ chọn bộ đề",()=>{foreach(var check in libraryChecks.Values)check.IsChecked=false;}),mergeBanksButton,deleteBanksButton));
+            page.Children.Add(Row(Btn("Chọn tất cả bộ đề",()=>{foreach(var check in librarySelections.Values)check.IsChecked=true;}),Btn("Bỏ chọn bộ đề",()=>{foreach(var check in librarySelections.Values)check.IsChecked=false;}),mergeBanksButton,deleteBanksButton));
         }
         foreach(var item in items) {
             var heading=new Grid {ColumnDefinitions=new ColumnDefinitions("*,Auto"),ColumnSpacing=12};
             var label=Text(item.Title,20);heading.Children.Add(label);var chevron=Icon("arrow");chevron.RenderTransform=new RotateTransform(expandedBankId==item.Id?-90:90);Grid.SetColumn(chevron,1);heading.Children.Add(chevron);
-            var open=Btn("",()=>{if(selectingBanks)libraryChecks[item.Id].IsChecked=libraryChecks[item.Id].IsChecked!=true;else OpenLibraryBank(item.Id);});open.Content=heading;open.Name="LibraryBank"+item.Id.ToString("N");open.Classes.Add("text");open.Padding=new Thickness(0,8);open.HorizontalAlignment=HorizontalAlignment.Stretch;open.HorizontalContentAlignment=HorizontalAlignment.Stretch;AutomationProperties.SetName(open,selectingBanks?"Chọn bộ đề "+item.Title:"Mở hoặc thu gọn bộ đề "+item.Title);
-            var body=new StackPanel {Spacing=12};body.Children.Add(open);
-            if(selectingBanks){var check=new CheckBox {Content="Chọn bộ đề này",IsChecked=selectedBanks.Contains(item.Id)};AutomationProperties.SetName(check,"Chọn bộ đề "+item.Title);check.IsCheckedChanged+=(_,_)=>{if(check.IsChecked==true)selectedBanks.Add(item.Id);else selectedBanks.Remove(item.Id);UpdateBankSelection();};libraryChecks[item.Id]=check;body.Children.Add(check);}
+            var body=new StackPanel {Spacing=12};
+            if(selectingBanks){chevron.IsVisible=false;heading.Margin=new Thickness(0,8);body.Children.Add(heading);}
+            else {
+                var open=Btn("",()=>OpenLibraryBank(item.Id));open.Content=heading;open.Name="LibraryBank"+item.Id.ToString("N");open.Classes.Add("text");open.Padding=new Thickness(0,8);open.HorizontalAlignment=HorizontalAlignment.Stretch;open.HorizontalContentAlignment=HorizontalAlignment.Stretch;AutomationProperties.SetName(open,"Mở hoặc thu gọn bộ đề "+item.Title);body.Children.Add(open);
+            }
             var countText=Supporting($"{item.Count} câu hỏi"+(currentBankId==item.Id?" · Đang chọn để làm bài":""),12);body.Children.Add(countText);
             var datesText=Supporting((item.ImportedAt.HasValue?"Nhập: "+Stamp(item.ImportedAt.Value):"Tạo trong thư viện: "+Stamp(item.CreatedAt))+"\nSửa gần nhất: "+Stamp(item.UpdatedAt),12);body.Children.Add(datesText);
             if(item.Id==expandedBankId){openedBankCount=countText;openedBankDates=datesText;}
             if(!string.IsNullOrWhiteSpace(item.SourceName))body.Children.Add(Supporting("File nguồn: "+item.SourceName,12));
-            var log=Btn("Nhật ký thay đổi",()=>ShowBankActivity(item.Id));log.Classes.Add("text");log.HorizontalAlignment=HorizontalAlignment.Left;log.Padding=new Thickness(0,8);body.Children.Add(log);
+            var log=Btn("Nhật ký thay đổi",()=>ShowBankActivity(item.Id));log.Classes.Add("text");log.HorizontalAlignment=HorizontalAlignment.Left;log.Padding=new Thickness(0,8);if(!selectingBanks)body.Children.Add(log);
             if(expandedBankId==item.Id) {
                 var divider=new Border {Height=1};Tone(divider,Border.BackgroundProperty,"OutlineVariant");body.Children.Add(divider);
                 var editor=new StackPanel {Spacing=16};editor.Children.Add(Text("Biên soạn · "+item.Title,18));BankEditor(editor);body.Children.Add(editor);
                 Dispatcher.UIThread.Post(()=>{var position=editor.TranslatePoint(new Point(0,0),page);if(position.HasValue)pageScroll.Offset=new Vector(0,Math.Max(0,position.Value.Y-12));},DispatcherPriority.Loaded);
             }
-            var card=Card(body);card.Padding=new Thickness(16);page.Children.Add(card);
+            if(selectingBanks){
+                // Keep the history action outside the toggle: no nested interactive controls.
+                var selection=new ToggleButton {Name="LibrarySelection"+item.Id.ToString("N"),Content=body,IsChecked=selectedBanks.Contains(item.Id),HorizontalAlignment=HorizontalAlignment.Stretch,HorizontalContentAlignment=HorizontalAlignment.Stretch};
+                selection.Classes.Add("bankSelection");AutomationProperties.SetName(selection,"Chọn bộ đề "+item.Title);
+                var frameBody=new StackPanel {Spacing=0};frameBody.Children.Add(selection);log.Margin=new Thickness(18,0,18,16);frameBody.Children.Add(log);
+                var card=new Border {Name="LibrarySelectionFrame"+item.Id.ToString("N"),Child=frameBody};card.Classes.Add("bankSelectionCard");card.Classes.Set("selected",selection.IsChecked==true);
+                selection.IsCheckedChanged+=(_,_)=>{if(selection.IsChecked==true)selectedBanks.Add(item.Id);else selectedBanks.Remove(item.Id);card.Classes.Set("selected",selection.IsChecked==true);UpdateBankSelection();};
+                // The frame padding/background also selects; nested buttons keep their own action.
+                card.Tapped+=(_,args)=>{if(args.Source is Visual visual&&(visual is Button||visual.GetVisualAncestors().Any(v=>v is Button)))return;selection.IsChecked=selection.IsChecked!=true;selection.Focus();args.Handled=true;};
+                librarySelections[item.Id]=selection;page.Children.Add(card);
+            } else {var card=Card(body);card.Padding=new Thickness(16);page.Children.Add(card);}
         }
         UpdateBankSelection();
     }

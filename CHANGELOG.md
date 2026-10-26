@@ -1,3 +1,12 @@
+# QuizDesk 5.14.0 — 26/10/2026
+
+- Thêm ngày/tháng/năm và giờ 24 giờ cạnh nút hướng dẫn: dd/MM/yyyy · HH:mm:ss.
+  Dùng múi giờ thiết bị, cập nhật mỗi giây; màn hình nhỏ hiển thị ngày/giờ hai dòng.
+  Làm mới ngay khi quay lại app, dừng timer khi view đóng; không ảnh hưởng giờ thi.
+- Chọn bộ đề bằng cách nhấn vào khung, đổi nền/viền toàn khung; bỏ checkbox
+  và dòng chọn riêng. Giữ chọn tất cả, Ctrl+A/⌘A và thao tác nhật ký độc lập.
+- Đồng bộ version 5.14.0; Android versionCode 60103, iOS build 18.
+
 # QuizDesk 5.13.0 — 26/10/2026
 
 - Tự chạy Actions khi push main; thêm macOS PKG cho Apple Silicon và Intel.

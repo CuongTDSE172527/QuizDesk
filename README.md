@@ -1,4 +1,4 @@
-# QuizDesk 5.13.0 — Windows, macOS, Android và mã nguồn iOS
+# QuizDesk 5.14.0 — Windows, macOS, Android và mã nguồn iOS
 
 [Tải bản cài / Releases](https://github.com/CuongTDSE172527/QuizDesk/releases/latest) · [Changelog](CHANGELOG.md)
 
@@ -531,8 +531,8 @@ trên PC/mobile, không cần cài Microsoft Office, LibreOffice, không gọi s
 - Không thêm định dạng cũ XLS/DOC trong đợt này. .quiz vẫn là bản sao lưu đầy đủ
   nhất cho media, cấu hình thi và thông tin cần rà soát của QuizDesk.
 
-Version hiển thị là **5.13.0**, Android versionCode **60102**, iOS build **17**.
-Chạy Actions với version/tag `v5.13.0`, hoặc để trống tag ở lượt chạy thủ công sau
+Version hiển thị là **5.14.0**, Android versionCode **60103**, iOS build **18**.
+Chạy Actions với version/tag `v5.14.0`, hoặc để trống tag ở lượt chạy thủ công sau
 khi commit/push source. Bộ đóng gói macOS tự đọc version từ project Desktop.
 
 ## Tự động build khi push
@@ -542,3 +542,10 @@ PKG riêng cho Apple Silicon/Intel. File build ở Artifacts (7 ngày); version 
 tự đưa APK/EXE/PKG lên Releases. Push lại version đã phát hành vẫn build, nhưng
 giữ nguyên Release cũ. IPA chưa ký vẫn tải trong Artifacts. Xem
 [hướng dẫn Actions](.github/RELEASES.md).
+
+## Ngày giờ trên thanh đầu
+
+Từ 5.14.0, ngày giờ thiết bị hiển thị cạnh nút hướng dẫn, theo định dạng
+`dd/MM/yyyy · HH:mm:ss` (24 giờ). Cập nhật mỗi giây, dùng lịch Gregorian và giờ
+địa phương; màn hình nhỏ hiển thị ngày và giờ hai dòng. Đồng hồ làm mới ngay
+khi quay lại ứng dụng và dùng timer riêng với đồng hồ đếm ngược bài thi.

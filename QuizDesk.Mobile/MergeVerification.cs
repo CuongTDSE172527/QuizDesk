@@ -12,7 +12,7 @@ public partial class MainView {
         WorkspaceBank Fixture(string name,string prefix)=>new(){Title=name,Bank=Enumerable.Range(1,2).Select(i=>new Question {Number=i*7,Text=prefix+i,Answer="B",Note="Giải thích "+prefix+i,Options=new(){{"A","Một"},{"B","Hai"}}}).ToList(),Setup=new(){Count=2,Minutes=30,ShuffleQuestions=false,Included=new(){7,14}}};
         var a=library.Create(Fixture("Nguồn A","A"),"a.docx",true);var b=library.Create(Fixture("Nguồn B","B"),"b.docx",true);
         AdoptBank(a);RememberSelectedBank();Start(false);ChooseAnswer("B");Finish();Check(historyStore.Load(out _).Count==1,"History fixture absent");Navigate("bank");Click(Find(page,"Chọn bộ đề"));
-        Check(!mergeBanksButton.IsEnabled,"Merge enabled with empty selection");libraryChecks[a.Id].IsChecked=true;Check(!mergeBanksButton.IsEnabled&&deleteBanksButton.IsEnabled,"Single-source selection actions incorrect");libraryChecks[b.Id].IsChecked=true;
+        Check(!mergeBanksButton.IsEnabled,"Merge enabled with empty selection");librarySelections[a.Id].IsChecked=true;Check(!mergeBanksButton.IsEnabled&&deleteBanksButton.IsEnabled,"Single-source selection actions incorrect");librarySelections[b.Id].IsChecked=true;
         Check(mergeBanksButton.IsEnabled&&bankSelectionSummary.Text.Contains("4"),"Selection count/merge state incorrect");await Capture("merge-01-selected");
         Click(mergeBanksButton);await Task.Delay(80);Check(currentDialog!=null,"Merge dialog not opened");await Capture("merge-02-dialog");
         Click(Find(modal,"Hủy"));await Task.Delay(80);Check(library.List(out _).Count==2&&selectedBanks.Count==2,"Cancel changed sources or lost selection");

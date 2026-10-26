@@ -4,6 +4,7 @@ using Avalonia.Controls;
 namespace QuizDesk.Mobile;
 public partial class MainView {
     void AdaptLayout() {
+        UpdateHeaderDateTime();
         bool wide=Bounds.Width>=840;if(wideLayout==wide)return;wideLayout=wide;
         shell.RowDefinitions=new RowDefinitions(wide?"Auto,*":"Auto,*,Auto");
         shell.ColumnDefinitions=new ColumnDefinitions(wide?"96,*":"*");

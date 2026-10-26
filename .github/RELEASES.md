@@ -88,11 +88,11 @@ môi trường của .NET Android; keystore được xóa khỏi runner sau khi 
    Tăng cả `ApplicationVersion` Android (số nguyên lớn hơn bản đã phát hành,
    hiện bản gốc là 60100). Nếu cập nhật iOS cùng đợt, đồng bộ version/build iOS.
    Inno Setup nhận version trực tiếp từ CI, không cần sửa tên bộ cài thủ công.
-3. Commit/push các thay đổi version, rồi tạo tag khớp source, ví dụ `v5.13.0`:
+3. Commit/push các thay đổi version, rồi tạo tag khớp source, ví dụ `v5.14.0`:
 
 ```powershell
-git tag v5.13.0
-git push origin v5.13.0
+git tag v5.14.0
+git push origin v5.14.0
 ```
 
 4. Theo dõi cả Android APK release, Windows EXE release và macOS PKG release.
@@ -114,7 +114,7 @@ EXE hiện không ký Authenticode; workflow không thêm chứng chỉ Windows.
 Sau khi commit/push thay đổi lên nhánh mặc định:
 
 1. Vào workflow tương ứng → **Run workflow** → chọn nhánh `main`.
-2. Để trống ô `tag` để dùng version source (hiện là `v5.13.0`), hoặc nhập tag
+2. Để trống ô `tag` để dùng version source (hiện là `v5.14.0`), hoặc nhập tag
    khớp version. Không cần tự tạo tag trước khi chạy thủ công.
 3. Nếu chạy thủ công, chạy cả Windows/Android/macOS trên cùng commit; hoặc chỉ
    push `main` để cả bốn workflow tự bắt đầu.

@@ -18,8 +18,8 @@ public partial class MainView {
         var a=library.Create(DeleteSample("Bộ đề nhập để xóa"),"de-a.docx",true);var b=library.Create(DeleteSample("Bộ đề tự tạo để xóa"));var keepBank=library.Create(DeleteSample("Bộ đề được giữ lại"));
         AdoptBank(a);RememberSelectedBank();Start(false);ChooseAnswer("B");Finish();Check(historyStore.Load(out _).Count==1,"Attempt fixture missing");
         AdoptBank(b);RememberSelectedBank();Navigate("bank");await Capture("delete-01-library");Click(Find(page,"Chọn bộ đề"));await Task.Delay(100);
-        Check(!deleteBanksButton.IsEnabled&&libraryChecks.Count==3,"Selection should begin empty");libraryChecks[a.Id].IsChecked=true;libraryChecks[b.Id].IsChecked=true;
-        Check(selectedBanks.Count==2&&deleteBanksButton.IsEnabled,"Checkbox selection did not enable delete");await Capture("delete-02-selected");
+        Check(!deleteBanksButton.IsEnabled&&librarySelections.Count==3,"Selection should begin empty");librarySelections[a.Id].IsChecked=true;librarySelections[b.Id].IsChecked=true;
+        Check(selectedBanks.Count==2&&deleteBanksButton.IsEnabled,"Card selection did not enable delete");await Capture("delete-02-selected");
         Click(deleteBanksButton);await Task.Delay(100);Check(currentDialog!=null,"Delete confirmation missing");await Capture("delete-03-confirm");Click(Find(modal,"Hủy"));await Task.Delay(100);
         Check(library.List(out _).Count==3&&selectedBanks.Count==2,"Cancel deleted a bank or lost selection");
         Click(deleteBanksButton);await Task.Delay(100);Click(Find(modal,"Xóa bộ đề"));await Task.Delay(120);

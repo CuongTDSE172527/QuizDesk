@@ -31,7 +31,7 @@ public partial class MainView {
         catch(Exception ex){Notify("Bộ đề đã lưu trong thư viện; chưa ghi được trạng thái đang mở: "+ex.Message,true);}
     }
     public void PersistSession(){PersistBank();if(active)Checkpoint();if(studying)SaveStudy();}
-    public void ResumeSession(){if(active&&!practice)Tick();IncomingChanged();}
+    public void ResumeSession(){UpdateHeaderDateTime();if(active&&!practice)Tick();IncomingChanged();}
     void BeginCheckpoint() {
         try{workspace.Begin(new ActiveMobileExam {LibraryBankId=examBankId,Id=activeAttemptId,Title=examTitle,StartedAt=startedAt,Deadline=new DateTimeOffset(deadline),Practice=practice,Minutes=examMinutes,Exam=exam});}
         catch(Exception ex) when(ex is IOException||ex is UnauthorizedAccessException){Notify("Chưa lưu được bài đang làm: "+ex.Message,true);}
