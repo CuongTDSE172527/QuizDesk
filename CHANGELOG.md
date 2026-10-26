@@ -1,5 +1,8 @@
 # QuizDesk 5.13.0 — 26/10/2026
 
+- Tự chạy Actions khi push main; thêm macOS PKG cho Apple Silicon và Intel.
+  Giữ Artifacts cho mọi bản build; chỉ publish version mới, không thay file đã phát hành.
+
 - Xuất DOCX, XLSX, JSON, CSV, TSV, TXT và HTML bên cạnh .quiz; có thể kèm hoặc
   bỏ đáp án/giải thích. DOCX/XLSX tạo trực tiếp trên PC/mobile, không cần Office,
   LibreOffice hay server. DOCX giữ ảnh PNG/JPEG/GIF; XLSX xuất bảng chữ có lọc,

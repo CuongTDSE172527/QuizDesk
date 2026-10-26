@@ -1,13 +1,45 @@
-# Build APK / bộ cài EXE và publish GitHub Releases
+# Tự động build Android / Windows / macOS / iOS
 
-Hai workflow độc lập:
+Sau khi commit và **push lên `main`**, bốn workflow tự chạy:
 
-- `.github/workflows/android-release.yml`: APK universal ARM64/x64, ký bằng khóa gốc.
-- `.github/workflows/windows-release.yml`: Windows x64 self-contained, đóng gói Inno Setup EXE.
+| Workflow | Kết quả |
+| --- | --- |
+| Android APK release | APK đã ký + SHA-256 |
+| Windows EXE release | Bộ cài Windows x64 EXE + SHA-256 |
+| macOS PKG release | Hai bộ cài PKG Apple Silicon (arm64) và Intel (x64) + SHA-256 riêng |
+| iOS build (Simulator and iPhone IPA) | App Simulator, IPA chưa ký và log trong Artifacts |
 
-Cả hai chạy khi push tag `vX.Y.Z`, hoặc chạy thủ công trong Actions trên nhánh/tag
-được chọn. Tag nhập thủ công có thể chưa tồn tại. Push nhánh `main` thông
-thường không tự phát hành. Workflow iOS vẫn hoạt động riêng như trước.
+Mọi push `main` đều kích hoạt, kể cả chỉ sửa tài liệu. Checkout được ghim đúng
+`github.sha` của sự kiện, nên push tiếp không làm lượt chạy trước build nhầm commit.
+Windows/Android/macOS vẫn hỗ trợ push tag `vX.Y.Z` và **Run workflow** thủ công.
+Không cần bấm chạy riêng từng workflow sau push `main`.
+
+Các bản build thành công luôn được lưu trong **Actions → lượt chạy → Artifacts**
+trong 7 ngày. Windows/Android/macOS tự publish vào cùng Release khi version/tag
+chưa có. Với push tự động, nếu version đã thuộc commit khác hoặc đã đủ asset
+của platform đó, bước publish báo bỏ qua và giữ nguyên file cũ; bản build mới
+vẫn tải được trong Artifacts. Muốn phát hành code mới, tăng version rồi push.
+Chạy thủ công vẫn kiểm tra xung đột tag/file nghiêm ngặt, không ghi đè binary.
+iOS hiện chỉ lưu Artifacts, không tự đưa IPA lên Releases hoặc TestFlight.
+
+## macOS
+
+Workflow build trên runner `macos-26`, tạo hai bản self-contained từ cùng commit:
+`osx-arm64` cho Apple Silicon, `osx-x64` cho Intel. Bản Intel được cross-publish
+trên runner Apple Silicon. Dùng `pkgbuild`/`productbuild` của macOS để tạo bộ cài
+vào `/Applications/QuizDesk.app`; không tải công cụ đóng gói ngoài.
+
+```text
+QuizDesk-Setup-X.Y.Z-macos-arm64.pkg
+QuizDesk-X.Y.Z-macos-arm64-SHA256.txt
+QuizDesk-Setup-X.Y.Z-macos-x64.pkg
+QuizDesk-X.Y.Z-macos-x64-SHA256.txt
+```
+
+Cần cả hai job build thành công trước khi publish macOS. Mỗi kiến trúc có
+artifact/checksum riêng, không đè lên nhau. App được ký ad-hoc trên runner và
+kiểm tra lại sau cài; PKG chưa có chữ ký Developer ID/notarization. Không cần
+Apple signing secret cho luồng build thử này. Chưa chạy thử bộ cài mới trên Mac thật.
 
 ## Thiết lập Android một lần
 
@@ -63,8 +95,8 @@ git tag v5.13.0
 git push origin v5.13.0
 ```
 
-4. Theo dõi **Actions → Android APK release** và **Windows EXE release**.
-5. Khi mỗi workflow thành công, file được đưa vào cùng Release `QuizDesk X.Y.Z`:
+4. Theo dõi cả Android APK release, Windows EXE release và macOS PKG release.
+5. Với version mới, file được đưa vào cùng Release `QuizDesk X.Y.Z`:
 
 ```text
 QuizDesk-X.Y.Z-Android.apk
@@ -84,7 +116,8 @@ Sau khi commit/push thay đổi lên nhánh mặc định:
 1. Vào workflow tương ứng → **Run workflow** → chọn nhánh `main`.
 2. Để trống ô `tag` để dùng version source (hiện là `v5.13.0`), hoặc nhập tag
    khớp version. Không cần tự tạo tag trước khi chạy thủ công.
-3. Chạy cả **Windows EXE release** và **Android APK release** trên cùng một commit.
+3. Nếu chạy thủ công, chạy cả Windows/Android/macOS trên cùng commit; hoặc chỉ
+   push `main` để cả bốn workflow tự bắt đầu.
 4. Sau khi build thành công, job publish tạo tag tại đúng commit đã build nếu
    tag chưa có. Tag đã có phải trỏ đúng commit đó (cũng hỗ trợ annotated tag).
 
@@ -93,18 +126,17 @@ Nếu một tag đã trỏ đến commit khác, workflow dừng, không di chuy�
 **Use workflow from**, hoặc tăng version và phát hành tag mới. Tag được chọn
 phải chứa workflow/script mới. Không dùng `v5.11.0` để phát hành source mới.
 
-GitHub không kích hoạt workflow khác từ tag tạo bằng `GITHUB_TOKEN`, nên khi
-chạy thủ công cần chạy cả hai workflow; workflow Windows không tự gọi Android.
-Muốn tự chạy cả hai bằng một thao tác, vẫn có thể tạo/push tag phiên bản từ máy
-cá nhân như phần trên.
+Push `main` kích hoạt cả bốn workflow. Tag do `GITHUB_TOKEN` tạo khi publish
+không kích hoạt thêm lượt chạy, tránh build lặp. Có thể push tag từ máy cá nhân
+để gọi riêng nhóm workflow phát hành Windows/Android/macOS.
 
 Build và publish là hai job riêng. Build/test thất bại thì không upload lên
 Release; platform còn lại vẫn có thể hoàn tất độc lập. Nếu chỉ publish lỗi,
 chọn chạy lại job lỗi để dùng lại artifact đã build. Artifact giữ 7 ngày;
 file trên Releases không theo hạn lưu artifact này.
 
-Hai job publish dùng chung concurrency group theo tag để tránh tranh nhau tạo
-Release. Chạy lại bỏ qua asset đã có nếu SHA-256 giống nhau; dừng nếu cùng tên
+Nhóm publish tách theo platform/kiến trúc/commit để không hủy lượt của nhau.
+Nếu cùng tạo tag/Release, script đọc lại và đối chiếu commit trước khi upload. Chạy lại bỏ qua asset đã có nếu SHA-256 giống nhau; dừng nếu cùng tên
 nhưng bytes khác hoặc không xác minh được. Không dùng `--clobber` và không xóa
 Release/bộ cài cũ. Nếu cần thay đổi binary đã phát hành, tăng version và tạo tag mới.
 Build lại toàn bộ có thể tạo bytes khác do thời gian đóng gói, nên tránh rebuild
@@ -112,12 +144,14 @@ Build lại toàn bộ có thể tạo bytes khác do thời gian đóng gói, n
 
 ## Kiểm tra và quyền
 
-- Chạy 18 kiểm thử publish giả lập (không ghi GitHub), 19 kiểm thử nhập nhiều file,
+- Chạy 24 kiểm thử publish giả lập (không ghi GitHub), 19 kiểm thử nhập nhiều file,
   30 gộp đề, 39 media và 25 xuất định dạng/trích câu và 25 xuất Office trước khi đóng gói.
+- macOS có thêm 6 kiểm thử logic đóng gói với Apple tools giả lập.
 - Kiểm tra SHA-256 artifact tải xuống trước khi publish.
 - Actions được pin vào commit SHA của bản chính thức.
 - Build job chỉ có `contents: read`; publish job mới có `contents: write`.
-- Không chạy workflow release với pull request. Chạy thủ công dùng nhánh/tag được chọn;
+- Workflow release không chạy trên pull request. Push `main` hoặc tag tự chạy;
+  chạy thủ công dùng nhánh/tag được chọn;
   tag mới chỉ được tạo trong job publish sau khi build thành công.
 - Android cần GitHub Secrets trước lượt chạy đầu; Windows không cần signing secret.
 - Chưa chạy build APK/EXE hoặc publish thật trên GitHub cho các workflow mới.

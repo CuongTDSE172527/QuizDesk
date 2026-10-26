@@ -7,12 +7,14 @@ $global:QDReleaseTestCalls=[Collections.Generic.List[string]]::new();$global:QDR
 $global:QDReleaseTestCommit='aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa'
 $global:QDReleaseTestTagCommit=$global:QDReleaseTestCommit
 $global:QDReleaseTestTagExists=$true;$global:QDReleaseTestAnnotated=$false;$global:QDReleaseTestForbidden=$false
+$global:QDReleaseTestTagRace=$false;$global:QDReleaseTestReleaseRace=$false
 function gh {
     $a=@($args);$global:QDReleaseTestCalls.Add(($a -join ' '));$global:LASTEXITCODE=0
     if($a[0] -eq 'api'){
         if($a[1] -eq '--method'){
             $global:QDReleaseTestTagExists=$true
             $global:QDReleaseTestTagCommit=(@($a | Where-Object {$_ -like 'sha=*'})[0]).Substring(4)
+            if($global:QDReleaseTestTagRace){$global:LASTEXITCODE=1}
             return
         }
         if($global:QDReleaseTestForbidden){Write-Error 'Forbidden (HTTP 403)' -ErrorAction Continue;$global:LASTEXITCODE=1;return}
@@ -24,7 +26,7 @@ function gh {
         if(-not $global:QDReleaseTestExists){Write-Error 'Not Found (HTTP 404)' -ErrorAction Continue;$global:LASTEXITCODE=1;return}
         @{tag_name='v5.11.0';html_url='https://example.invalid/release';assets=@($global:QDReleaseTestAssets);draft=$global:QDReleaseTestDraft} | ConvertTo-Json -Depth 5 -Compress;return
     }
-    if($a[0] -eq 'release' -and $a[1] -eq 'create'){$global:QDReleaseTestExists=$true;return}
+    if($a[0] -eq 'release' -and $a[1] -eq 'create'){$global:QDReleaseTestExists=$true;if($global:QDReleaseTestReleaseRace){$global:LASTEXITCODE=1};return}
     if($a[0] -eq 'release' -and $a[1] -in @('upload','edit')){return}
     throw 'Unexpected gh command'
 }
@@ -79,8 +81,30 @@ Reject {& $publish -Tag v5.11.0 -Commit $global:QDReleaseTestCommit -Platform an
 $global:QDReleaseTestForbidden=$false;$global:QDReleaseTestAnnotated=$true;$global:QDReleaseTestCalls.Clear()
 & $publish -Tag v5.11.0 -Commit $global:QDReleaseTestCommit -Platform android -Directory $folder
 Check (@($global:QDReleaseTestCalls | Where-Object {$_ -like 'api *git/tags/*'}).Count -eq 1) 'Annotated tag is resolved to the built commit'
-Write-Output 'All 18 release automation checks passed; gh was mocked (no network writes).'
+$global:QDReleaseTestAnnotated=$false;$global:QDReleaseTestTagCommit='bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb';$global:QDReleaseTestCalls.Clear()
+& $publish -Tag v5.11.0 -Commit $global:QDReleaseTestCommit -Platform android -Directory $folder -Automatic
+Check (@($global:QDReleaseTestCalls | Where-Object {$_ -like 'release *' -or $_ -like 'api --method POST*'}).Count -eq 0) 'A push with an already released version keeps artifacts without touching old tag/release'
+$global:QDReleaseTestTagCommit=$global:QDReleaseTestCommit;$global:QDReleaseTestCalls.Clear()
+$global:QDReleaseTestAssets=@($apk,$apkManifest) | ForEach-Object { @{name=[IO.Path]::GetFileName($_);digest='sha256:older-build'} }
+& $publish -Tag v5.11.0 -Commit $global:QDReleaseTestCommit -Platform android -Directory $folder -Automatic
+Check (@($global:QDReleaseTestCalls | Where-Object {$_ -like 'release *'}).Count -eq 0) 'Automatic rebuild never replaces existing published platform assets'
+$global:QDReleaseTestAssets=@();$global:QDReleaseTestTagExists=$false;$global:QDReleaseTestTagRace=$true;$global:QDReleaseTestCalls.Clear()
+& $publish -Tag v5.11.0 -Commit $global:QDReleaseTestCommit -Platform android -Directory $folder
+Check (@($global:QDReleaseTestCalls | Where-Object {$_ -like 'release upload*'}).Count -eq 2) 'Concurrent tag creation is read back and accepted only at the built commit'
+$global:QDReleaseTestTagRace=$false;$global:QDReleaseTestExists=$false;$global:QDReleaseTestReleaseRace=$true;$global:QDReleaseTestCalls.Clear()
+& $publish -Tag v5.11.0 -Commit $global:QDReleaseTestCommit -Platform android -Directory $folder
+Check (@($global:QDReleaseTestCalls | Where-Object {$_ -like 'release upload*'}).Count -eq 2) 'Concurrent release creation is read back before platform upload'
+$global:QDReleaseTestReleaseRace=$false
+foreach($arch in @('arm64','x64')){
+    $pkg=Join-Path $folder "QuizDesk-Setup-5.11.0-macos-$arch.pkg";$pkgManifest=Join-Path $folder "QuizDesk-5.11.0-macos-$arch-SHA256.txt"
+    [IO.File]::WriteAllText($pkg,'Inert package fixture')
+    $pkgHash=(Get-FileHash $pkg).Hash.ToLowerInvariant();"$pkgHash  $([IO.Path]::GetFileName($pkg))" | Set-Content $pkgManifest -Encoding ascii
+    $global:QDReleaseTestCalls.Clear()
+    & $publish -Tag v5.11.0 -Commit $global:QDReleaseTestCommit -Platform "macos-$arch" -Directory $folder
+    Check (@($global:QDReleaseTestCalls | Where-Object {$_ -like "release upload*macos-$arch*"}).Count -eq 2) "macOS $arch attaches its PKG and separate checksum to the shared release"
+}
+Write-Output 'All 24 release automation checks passed; gh was mocked (no network writes).'
 } finally {
     foreach($key in $originalEnvironment.Keys){[Environment]::SetEnvironmentVariable($key,$originalEnvironment[$key])}
-    Remove-Variable -Name QDReleaseTestCalls,QDReleaseTestExists,QDReleaseTestAssets,QDReleaseTestDraft,QDReleaseTestCommit,QDReleaseTestTagCommit,QDReleaseTestTagExists,QDReleaseTestAnnotated,QDReleaseTestForbidden -Scope Global -ErrorAction SilentlyContinue
+    Remove-Variable -Name QDReleaseTestCalls,QDReleaseTestExists,QDReleaseTestAssets,QDReleaseTestDraft,QDReleaseTestCommit,QDReleaseTestTagCommit,QDReleaseTestTagExists,QDReleaseTestAnnotated,QDReleaseTestForbidden,QDReleaseTestTagRace,QDReleaseTestReleaseRace -Scope Global -ErrorAction SilentlyContinue
 }

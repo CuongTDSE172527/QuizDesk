@@ -1,44 +1,56 @@
 param(
     [Parameter(Mandatory)][ValidatePattern('^v[0-9]+\.[0-9]+\.[0-9]+$')][string]$Tag,
     [Parameter(Mandatory)][ValidatePattern('^[a-fA-F0-9]{40}$')][string]$Commit,
-    [Parameter(Mandatory)][ValidateSet('android','windows')][string]$Platform,
-    [Parameter(Mandatory)][string]$Directory
+    [Parameter(Mandatory)][ValidateSet('android','windows','macos-arm64','macos-x64')][string]$Platform,
+    [Parameter(Mandatory)][string]$Directory,
+    [switch]$Automatic
 )
 $ErrorActionPreference='Stop'
 # Handle expected gh API 404s explicitly; never log credentials.
 $PSNativeCommandUseErrorActionPreference=$false
 if(-not $env:GH_TOKEN -or -not $env:GITHUB_REPOSITORY){throw 'GitHub token and repository context required.'}
 $version=$Tag.Substring(1)
-$asset=if($Platform -eq 'android'){"QuizDesk-$version-Android.apk"}else{"QuizDesk-Setup-$version-x64.exe"}
-$manifest=if($Platform -eq 'android'){"QuizDesk-$version-Android-SHA256.txt"}else{"QuizDesk-$version-Windows-SHA256.txt"}
+$asset=switch($Platform){android{"QuizDesk-$version-Android.apk"} windows{"QuizDesk-Setup-$version-x64.exe"} default{"QuizDesk-Setup-$version-$Platform.pkg"}}
+$manifest=switch($Platform){android{"QuizDesk-$version-Android-SHA256.txt"} windows{"QuizDesk-$version-Windows-SHA256.txt"} default{"QuizDesk-$version-$Platform-SHA256.txt"}}
 $files=@((Join-Path $Directory $asset),(Join-Path $Directory $manifest))
 foreach($file in $files){if(-not (Test-Path -LiteralPath $file -PathType Leaf)){throw "Release file missing: $file"}}
 $actual=(Get-FileHash -LiteralPath $files[0] -Algorithm SHA256).Hash.ToLowerInvariant()
 $record=[IO.File]::ReadAllText($files[1]).Trim()
 if($record -cne "$actual  $asset"){throw 'Downloaded release asset does not match its SHA-256 manifest.'}
-# Both workflows serialize tag creation and publication with a shared concurrency group.
+function Skip-Publish([string]$Reason){
+    $message="Build retained in Actions Artifacts. Release publication skipped: $Reason"
+    Write-Output $message
+    if($env:GITHUB_STEP_SUMMARY){$message | Out-File -LiteralPath $env:GITHUB_STEP_SUMMARY -Append -Encoding utf8}
+}
+# Publication is isolated by platform/commit; concurrent tag/release creation is resolved by reading back the result.
 . (Join-Path $PSScriptRoot 'GitHub-Api.ps1')
 $refEndpoint="repos/$env:GITHUB_REPOSITORY/git/ref/tags/$Tag"
 $reference=Get-GitHubJson $refEndpoint
 if($null -eq $reference){
     & gh api --method POST "repos/$env:GITHUB_REPOSITORY/git/refs" -f "ref=refs/tags/$Tag" -f "sha=$Commit" | Out-Null
-    if($LASTEXITCODE -ne 0){throw 'Cannot create release tag at the built commit.'}
     $reference=Get-GitHubJson $refEndpoint
+    if($null -eq $reference){throw 'Cannot create release tag at the built commit.'}
 }
 $target=$reference.object
 for($depth=0;$null -ne $target -and $target.type -eq 'tag' -and $depth -lt 8;$depth++){
     $annotated=Get-GitHubJson "repos/$env:GITHUB_REPOSITORY/git/tags/$($target.sha)"
     $target=$annotated.object
 }
-if($null -eq $target -or $target.type -ne 'commit' -or $target.sha -ine $Commit){throw "Tag $Tag does not point to the built commit $Commit. Existing tags will not be moved. Build from the tag or use a new version."}
+if($null -eq $target -or $target.type -ne 'commit'){throw "Cannot resolve tag $Tag to a commit."}
+if($target.sha -ine $Commit){
+    if($Automatic){Skip-Publish "$Tag is already assigned to another commit. Increase the app version to publish a new release.";return}
+    throw "Tag $Tag does not point to the built commit $Commit. Existing tags will not be moved. Build from the tag or use a new version."
+}
 $release=Get-GitHubJson "repos/$env:GITHUB_REPOSITORY/releases/tags/$Tag"
 if($null -eq $release){
     & gh release create $Tag --repo $env:GITHUB_REPOSITORY --verify-tag --title "QuizDesk $version" --generate-notes
-    if($LASTEXITCODE -ne 0){throw 'Cannot create GitHub Release. Verify repository Actions write permissions.'}
     $release=Get-GitHubJson "repos/$env:GITHUB_REPOSITORY/releases/tags/$Tag"
     if($null -eq $release){throw 'Cannot read created release.'}
 }
 if($release.tag_name -cne $Tag){throw 'Unexpected release tag.'}
+if($Automatic -and -not $release.draft -and @($release.assets | Where-Object {$_.name -cin @($asset,$manifest)}).Count -eq 2){
+    Skip-Publish "Assets for $Platform already exist on $Tag. Published files remain unchanged.";return
+}
 foreach($file in $files){
     $name=[IO.Path]::GetFileName($file);$hash=(Get-FileHash -LiteralPath $file -Algorithm SHA256).Hash.ToLowerInvariant()
     $existing=@($release.assets | Where-Object { $_.name -ceq $name })

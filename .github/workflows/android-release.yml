@@ -2,6 +2,7 @@ name: Android APK release
 
 on:
   push:
+    branches: [main]
     tags: ['v*']
   workflow_dispatch:
     inputs:
@@ -14,7 +15,7 @@ permissions:
   contents: read
 
 concurrency:
-  group: android-release-${{ github.event.inputs.tag || github.ref }}
+  group: android-release-${{ github.ref }}-${{ github.sha }}
   cancel-in-progress: false
 
 jobs:
@@ -37,7 +38,7 @@ jobs:
       - name: Checkout selected source
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          ref: ${{ github.ref }}
+          ref: ${{ github.sha }}
           persist-credentials: false
       - name: Validate release version
         id: version
@@ -93,7 +94,7 @@ jobs:
     permissions:
       contents: write
     concurrency:
-      group: quizdesk-release-publish-${{ needs.build.outputs.tag }}
+      group: quizdesk-release-publish-${{ needs.build.outputs.tag }}-android-${{ needs.build.outputs.commit }}
       cancel-in-progress: false
     defaults:
       run:
@@ -114,4 +115,5 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           RELEASE_TAG: ${{ needs.build.outputs.tag }}
           RELEASE_COMMIT: ${{ needs.build.outputs.commit }}
-        run: ./.github/scripts/Publish-Release.ps1 -Tag $env:RELEASE_TAG -Commit $env:RELEASE_COMMIT -Platform android -Directory dist/release-android
+          AUTOMATIC_PUSH: ${{ github.event_name == 'push' }}
+        run: ./.github/scripts/Publish-Release.ps1 -Tag $env:RELEASE_TAG -Commit $env:RELEASE_COMMIT -Platform android -Directory dist/release-android -Automatic:($env:AUTOMATIC_PUSH -eq 'true')

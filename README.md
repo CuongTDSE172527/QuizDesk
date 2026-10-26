@@ -534,3 +534,11 @@ trên PC/mobile, không cần cài Microsoft Office, LibreOffice, không gọi s
 Version hiển thị là **5.13.0**, Android versionCode **60102**, iOS build **17**.
 Chạy Actions với version/tag `v5.13.0`, hoặc để trống tag ở lượt chạy thủ công sau
 khi commit/push source. Bộ đóng gói macOS tự đọc version từ project Desktop.
+
+## Tự động build khi push
+
+Push lên `main` tự chạy Android, Windows, macOS và iOS. Workflow macOS tạo
+PKG riêng cho Apple Silicon/Intel. File build ở Artifacts (7 ngày); version mới
+tự đưa APK/EXE/PKG lên Releases. Push lại version đã phát hành vẫn build, nhưng
+giữ nguyên Release cũ. IPA chưa ký vẫn tải trong Artifacts. Xem
+[hướng dẫn Actions](.github/RELEASES.md).

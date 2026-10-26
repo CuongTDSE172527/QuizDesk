@@ -4,12 +4,6 @@ on:
   workflow_dispatch:
   push:
     branches: [main]
-    paths:
-      - 'QuizDesk.Core/**'
-      - 'QuizDesk.Mobile/**'
-      - 'QuizDesk.iOS/**'
-      - 'build-ios.sh'
-      - '.github/workflows/ios.yml'
   pull_request:
     branches: [main]
 
@@ -17,8 +11,8 @@ permissions:
   contents: read
 
 concurrency:
-  group: ios-${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: true
+  group: ios-${{ github.ref }}-${{ github.sha }}
+  cancel-in-progress: false
 
 jobs:
   build:
@@ -31,8 +25,9 @@ jobs:
       DOTNET_NOLOGO: '1'
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
+          ref: ${{ github.sha }}
           persist-credentials: false
       - name: Select Xcode 26.6
         shell: bash
@@ -41,8 +36,12 @@ jobs:
           test -d /Applications/Xcode_26.6.app || { echo '::error::Xcode 26.6 is missing from this runner image.'; ls -d /Applications/Xcode*.app; exit 1; }
           sudo xcode-select --switch /Applications/Xcode_26.6.app/Contents/Developer
           xcodebuild -version
+      - name: Pin SDK resolver
+        shell: bash
+        run: |
+          printf '%s\n' '{"sdk":{"version":"10.0.402","rollForward":"disable","allowPrerelease":false}}' > global.json
       - name: Set up .NET 10
-        uses: actions/setup-dotnet@v4
+        uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6.0.0
         with:
           dotnet-version: '10.0.402'
       - name: Install matching iOS workload
@@ -65,7 +64,7 @@ jobs:
           ditto -c -k --sequesterRsrc --keepParent "$app" artifacts/QuizDesk-iOS-Simulator.zip
       - name: Upload app and build log
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: QuizDesk-iOS-Simulator-${{ github.run_number }}
           path: artifacts/
@@ -82,8 +81,9 @@ jobs:
       DOTNET_NOLOGO: '1'
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
+          ref: ${{ github.sha }}
           persist-credentials: false
       - name: Select Xcode 26.6
         shell: bash
@@ -92,8 +92,12 @@ jobs:
           test -d /Applications/Xcode_26.6.app || { echo '::error::Xcode 26.6 is missing from this runner image.'; ls -d /Applications/Xcode*.app; exit 1; }
           sudo xcode-select --switch /Applications/Xcode_26.6.app/Contents/Developer
           xcodebuild -version
+      - name: Pin SDK resolver
+        shell: bash
+        run: |
+          printf '%s\n' '{"sdk":{"version":"10.0.402","rollForward":"disable","allowPrerelease":false}}' > global.json
       - name: Set up .NET 10
-        uses: actions/setup-dotnet@v4
+        uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6.0.0
         with:
           dotnet-version: '10.0.402'
       - name: Install matching iOS workload
@@ -108,7 +112,7 @@ jobs:
           mkdir -p artifacts
           sh build-ios.sh unsigned 2>&1 | tee artifacts/ios-device-build.log
       - name: Upload unsigned IPA
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: QuizDesk-iPhone-unsigned-IPA-${{ github.run_number }}
           path: |
@@ -118,7 +122,7 @@ jobs:
           retention-days: 7
       - name: Upload device build log
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: QuizDesk-iPhone-build-log-${{ github.run_number }}
           path: artifacts/ios-device-build.log

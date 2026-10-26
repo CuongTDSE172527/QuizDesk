@@ -35,3 +35,6 @@ preview-data/
 *.tar.gz
 .DS_Store
 Thumbs.db
+
+# Python packaging test cache
+**/__pycache__/
