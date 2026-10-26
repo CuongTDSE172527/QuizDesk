@@ -4,7 +4,9 @@
 #ifndef SetupOutput
   #define SetupOutput ".."
 #endif
-#define AppVersion "5.11.0"
+#ifndef AppVersion
+  #define AppVersion "5.11.0"
+#endif
 [Setup]
 ChangesAssociations=yes
 AppId={{B5D71729-73E8-4A5C-A9F8-7685D6781E60}

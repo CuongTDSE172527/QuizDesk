@@ -1,0 +1,108 @@
+# Build APK / bộ cài EXE và publish GitHub Releases
+
+Hai workflow độc lập:
+
+- `.github/workflows/android-release.yml`: APK universal ARM64/x64, ký bằng khóa gốc.
+- `.github/workflows/windows-release.yml`: Windows x64 self-contained, đóng gói Inno Setup EXE.
+
+Cả hai chạy khi push tag `vX.Y.Z`, hoặc chạy thủ công trong Actions với **tag đã
+có**, trỏ đến commit chứa workflow và các script mới. Push nhánh `main` thông
+thường không tự phát hành. Workflow iOS vẫn hoạt động riêng như trước.
+
+## Thiết lập Android một lần
+
+Trong repo: **Settings → Secrets and variables → Actions → New repository secret**:
+
+| Secret | Nội dung |
+| --- | --- |
+| `ANDROID_KEYSTORE_BASE64` | Base64 của file khóa ký QuizDesk gốc |
+| `ANDROID_KEYSTORE_PASSWORD` | Mật khẩu keystore |
+| `ANDROID_KEY_PASSWORD` | Mật khẩu private key |
+| `ANDROID_KEY_ALIAS` | Alias của khóa ký |
+
+Giữ khóa gốc để APK mới cập nhật đè bản đang cài mà giữ dữ liệu. Không tạo khóa
+mới cho mỗi lượt CI. Script release dừng nếu thiếu khóa hoặc sai chứng chỉ.
+Không đưa keystore, Base64 hoặc mật khẩu vào file source, commit hay log.
+
+Để sao chép Base64 vào clipboard trên máy cá nhân (thay đường dẫn bằng file
+khóa gốc thật), chạy PowerShell:
+
+```powershell
+[Convert]::ToBase64String([IO.File]::ReadAllBytes('C:\duong-dan-khoa-goc\quizdesk-dev.keystore')) | Set-Clipboard
+```
+
+Dán vào secret `ANDROID_KEYSTORE_BASE64`, sau đó xóa nội dung clipboard.
+Mặc định workflow kiểm tra chứng chỉ QuizDesk cũ có SHA-256:
+
+```text
+45fca4ca62aa2dea2c0e7dc710ac8f54529a785bdca977b09d209fd74dcc1172
+```
+
+Nếu chủ động dùng chứng chỉ khác, đặt repository **variable**
+`ANDROID_SIGNING_CERT_SHA256` bằng SHA-256 của chứng chỉ đó (không phải hash của
+file keystore). APK ký khóa khác sẽ không cập nhật đè bản cũ thông thường.
+
+Chỉ APK đã qua `apksigner verify` và kiểm tra package `com.quizdesk.mobile`,
+phiên bản/chứng chỉ mới được upload. Mật khẩu được truyền bằng tham chiếu biến
+môi trường của .NET Android; keystore được xóa khỏi runner sau khi build.
+
+## Tạo phiên bản phát hành mới
+
+1. Commit toàn bộ source muốn phát hành, bao gồm workflow/script mới.
+2. Đồng bộ version `X.Y.Z` ở:
+   - `QuizDesk.Desktop/QuizDesk.Desktop.csproj`: `Version`.
+   - `QuizDesk.Mobile/QuizDesk.Mobile.csproj`: `Version`.
+   - `QuizDesk.Android/QuizDesk.Android.csproj`: `ApplicationDisplayVersion`.
+   Tăng cả `ApplicationVersion` Android (số nguyên lớn hơn bản đã phát hành,
+   hiện bản gốc là 60100). Nếu cập nhật iOS cùng đợt, đồng bộ version/build iOS.
+   Inno Setup nhận version trực tiếp từ CI, không cần sửa tên bộ cài thủ công.
+3. Commit/push các thay đổi version, rồi tạo tag khớp source, ví dụ `v5.12.0`:
+
+```powershell
+git tag v5.12.0
+git push origin v5.12.0
+```
+
+4. Theo dõi **Actions → Android APK release** và **Windows EXE release**.
+5. Khi mỗi workflow thành công, file được đưa vào cùng Release `QuizDesk X.Y.Z`:
+
+```text
+QuizDesk-X.Y.Z-Android.apk
+QuizDesk-X.Y.Z-Android-SHA256.txt
+QuizDesk-Setup-X.Y.Z-x64.exe
+QuizDesk-X.Y.Z-Windows-SHA256.txt
+```
+
+Không cần tạo Release bằng tay. GitHub token mặc định của workflow được dùng;
+không cần PAT. Repo private thì Release cũng chỉ người có quyền repo mới tải được.
+EXE hiện không ký Authenticode; workflow không thêm chứng chỉ Windows.
+
+## Chạy thủ công / thử lại
+
+Sau khi workflow có trên nhánh mặc định, vào workflow tương ứng → **Run workflow**,
+nhập tag đã có và chứa các script mới. Workflow checkout chính tag đó, kiểm tra
+version source phải khớp tag. Tag cũ từ trước khi thêm CI không có các script này.
+Không dùng tag `v5.11.0` đã phát hành để đưa nội dung mới lên thay thế.
+
+Build và publish là hai job riêng. Build/test thất bại thì không upload lên
+Release; platform còn lại vẫn có thể hoàn tất độc lập. Nếu chỉ publish lỗi,
+chọn chạy lại job lỗi để dùng lại artifact đã build. Artifact giữ 7 ngày;
+file trên Releases không theo hạn lưu artifact này.
+
+Hai job publish dùng chung concurrency group theo tag để tránh tranh nhau tạo
+Release. Chạy lại bỏ qua asset đã có nếu SHA-256 giống nhau; dừng nếu cùng tên
+nhưng bytes khác hoặc không xác minh được. Không dùng `--clobber` và không xóa
+Release/bộ cài cũ. Nếu cần thay đổi binary đã phát hành, tăng version và tạo tag mới.
+Build lại toàn bộ có thể tạo bytes khác do thời gian đóng gói, nên tránh rebuild
+để thay thế asset đã công bố.
+
+## Kiểm tra và quyền
+
+- Chạy 12 kiểm thử publish giả lập (không ghi GitHub), 19 kiểm thử nhập nhiều file,
+  30 gộp đề và 39 media trước khi đóng gói.
+- Kiểm tra SHA-256 artifact tải xuống trước khi publish.
+- Actions được pin vào commit SHA của bản chính thức.
+- Build job chỉ có `contents: read`; publish job mới có `contents: write`.
+- Không chạy workflow release với pull request hoặc nhánh không có tag.
+- Android cần GitHub Secrets trước lượt chạy đầu; Windows không cần signing secret.
+- Chưa chạy build APK/EXE hoặc publish thật trên GitHub cho các workflow mới.

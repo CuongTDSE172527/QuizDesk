@@ -1,5 +1,8 @@
 # Chưa phát hành — 26/10/2026
 
+- Thêm GitHub Actions build APK đã ký và bộ cài EXE Windows theo tag; tự đưa
+  file/SHA-256 vào cùng Release, kiểm tra version và giữ nguyên các asset đã phát hành.
+
 - Nhập tối đa 20 file mỗi lượt; chọn mỗi file thành một bộ đề hoặc gộp thành
   một bộ tổng hợp, có thể trộn thứ tự câu hỏi.
 - Đọc câu hỏi và bảng đáp án theo từng file trước khi gộp. Đánh số lại từ 1,

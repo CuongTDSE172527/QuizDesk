@@ -5,12 +5,14 @@ param(
     [string]$KeyStore=(Join-Path $PSScriptRoot '.tooling/quizdesk-dev.keystore'),
     [string]$StorePassword='android',
     [string]$KeyPassword='android',
-    [string]$KeyAlias='quizdesk-dev'
+    [string]$KeyAlias='quizdesk-dev',
+    [switch]$RequireExistingKey
 )
 $ErrorActionPreference='Stop'
 if(-not $AndroidSdkDirectory -or -not $JavaSdkDirectory){throw 'Set ANDROID_HOME and JAVA_HOME, or pass AndroidSdkDirectory and JavaSdkDirectory.'}
 $env:AVALONIA_TELEMETRY_OPTOUT='1'
 if(-not (Test-Path -LiteralPath $KeyStore)) {
+    if($RequireExistingKey){throw 'Release signing key missing. No replacement key will be generated.'}
     New-Item -ItemType Directory -Force (Split-Path $KeyStore) | Out-Null
     $keytool=Join-Path $JavaSdkDirectory $(if($IsWindows -or $env:OS -eq 'Windows_NT'){'bin/keytool.exe'}else{'bin/keytool'})
     & $keytool -genkeypair -keystore $KeyStore -alias $KeyAlias -storepass $StorePassword -keypass $KeyPassword -keyalg RSA -keysize 2048 -validity 10000 -dname 'CN=QuizDesk Development, O=QuizDesk, C=VN' -noprompt

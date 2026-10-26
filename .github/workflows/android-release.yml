@@ -1,0 +1,116 @@
+name: Android APK release
+
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Existing release tag containing these workflows (for example v5.12.0)'
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: android-release-${{ github.event.inputs.tag || github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  build:
+    name: Build signed Android APK
+    runs-on: windows-2025
+    timeout-minutes: 45
+    outputs:
+      tag: ${{ steps.version.outputs.tag }}
+      version: ${{ steps.version.outputs.version }}
+      commit: ${{ steps.version.outputs.commit }}
+    env:
+      DOTNET_CLI_TELEMETRY_OPTOUT: '1'
+      AVALONIA_TELEMETRY_OPTOUT: '1'
+      DOTNET_NOLOGO: '1'
+    defaults:
+      run:
+        shell: pwsh
+    steps:
+      - name: Checkout release tag
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.event_name == 'workflow_dispatch' && format('refs/tags/{0}', inputs.tag) || github.ref }}
+          persist-credentials: false
+      - name: Validate release version
+        id: version
+        env:
+          RELEASE_TAG: ${{ github.event.inputs.tag || github.ref_name }}
+        run: ./.github/scripts/Get-ReleaseVersion.ps1 -Tag $env:RELEASE_TAG
+      - name: Pin SDK resolver
+        run: |
+          '{"sdk":{"version":"10.0.402","rollForward":"disable","allowPrerelease":false}}' | Set-Content -LiteralPath global.json -Encoding utf8
+      - name: Set up .NET
+        uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6.0.0
+        with:
+          dotnet-version: '10.0.402'
+      - name: Set up Java 21
+        uses: actions/setup-java@b843ebf9b913146b38da2eaa7aeddf76074ae1ad # v6.1.0
+        with:
+          distribution: temurin
+          java-version: '21'
+      - name: Install Android build tools
+        run: |
+          dotnet workload install android --version 10.0.401
+          if ($LASTEXITCODE -ne 0) { throw 'Android workload installation failed.' }
+          $sdkmanager = Join-Path $env:ANDROID_HOME 'cmdline-tools/latest/bin/sdkmanager.bat'
+          & $sdkmanager "--sdk_root=$env:ANDROID_HOME" 'platforms;android-36' 'build-tools;36.0.0' 'platform-tools'
+          if ($LASTEXITCODE -ne 0) { throw 'Android SDK installation failed.' }
+      - name: Test publishing safety (no GitHub writes)
+        run: ./.github/scripts/Test-ReleasePublishing.ps1
+      - name: Run core regression checks
+        run: ./.github/scripts/Test-Release.ps1
+      - name: Build and verify signed APK
+        env:
+          RELEASE_VERSION: ${{ steps.version.outputs.version }}
+          QD_ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          QD_ANDROID_STORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          QD_ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+          QD_ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          EXPECTED_CERTIFICATE: ${{ vars.ANDROID_SIGNING_CERT_SHA256 || '45fca4ca62aa2dea2c0e7dc710ac8f54529a785bdca977b09d209fd74dcc1172' }}
+        run: ./.github/scripts/Build-AndroidRelease.ps1 -Version $env:RELEASE_VERSION -ExpectedCertificateSha256 $env:EXPECTED_CERTIFICATE
+      - name: Save APK and checksum
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: release-android-${{ github.run_id }}
+          path: dist/release-android/
+          if-no-files-found: error
+          retention-days: 7
+          overwrite: true
+
+  publish:
+    name: Publish APK to GitHub Releases
+    needs: build
+    runs-on: windows-2025
+    timeout-minutes: 10
+    permissions:
+      contents: write
+    concurrency:
+      group: quizdesk-release-publish-${{ needs.build.outputs.tag }}
+      cancel-in-progress: false
+    defaults:
+      run:
+        shell: pwsh
+    steps:
+      - name: Checkout verified source
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ needs.build.outputs.commit }}
+          persist-credentials: false
+      - name: Download verified APK
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: release-android-${{ github.run_id }}
+          path: dist/release-android
+      - name: Publish release assets
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_TAG: ${{ needs.build.outputs.tag }}
+        run: ./.github/scripts/Publish-Release.ps1 -Tag $env:RELEASE_TAG -Platform android -Directory dist/release-android

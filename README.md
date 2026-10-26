@@ -479,3 +479,9 @@ Kết quả nhập hiển thị riêng từng file. Nếu tách, các file hợp
 file lỗi được báo để sửa/nhập lại. Nếu gộp, một file lỗi sẽ dừng lượt nhập và
 không tạo bộ tổng hợp thiếu câu. App không tự ghép file chỉ có đáp án sang một
 file đề khác; mỗi file được chọn cần là một bộ đề độc lập.
+
+## Build và phát hành tự động
+
+Có hai GitHub Actions riêng để build APK Android và bộ cài EXE Windows, rồi
+đính kèm vào cùng GitHub Release theo tag phiên bản. Xem [cách cấu hình khóa ký
+và chạy workflow](.github/RELEASES.md).
