@@ -1,44 +1,73 @@
-name: iOS starter workflow
+name: iOS Simulator build
 
 on:
+  workflow_dispatch:
   push:
-    branches: [ "main" ]
+    branches: [main]
+    paths:
+      - 'QuizDesk.Core/**'
+      - 'QuizDesk.Mobile/**'
+      - 'QuizDesk.iOS/**'
+      - 'build-ios.sh'
+      - '.github/workflows/ios.yml'
   pull_request:
-    branches: [ "main" ]
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ios-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   build:
-    name: Build and Test default scheme using any available iPhone simulator
-    runs-on: macos-latest
-
+    name: Build .NET iOS Simulator
+    runs-on: macos-26
+    timeout-minutes: 35
+    env:
+      DOTNET_CLI_TELEMETRY_OPTOUT: '1'
+      AVALONIA_TELEMETRY_OPTOUT: '1'
+      DOTNET_NOLOGO: '1'
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-      - name: Set Default Scheme
+        with:
+          persist-credentials: false
+      - name: Select Xcode 26.6
+        shell: bash
         run: |
-          scheme_list=$(xcodebuild -list -json | tr -d "\n")
-          default=$(echo $scheme_list | ruby -e "require 'json'; puts JSON.parse(STDIN.gets)['project']['targets'][0]")
-          echo $default | cat >default
-          echo Using default scheme: $default
-      - name: Build
-        env:
-          scheme: ${{ 'default' }}
-          platform: ${{ 'iOS Simulator' }}
+          set -euo pipefail
+          test -d /Applications/Xcode_26.6.app || { echo '::error::Xcode 26.6 is missing from this runner image.'; ls -d /Applications/Xcode*.app; exit 1; }
+          sudo xcode-select --switch /Applications/Xcode_26.6.app/Contents/Developer
+          xcodebuild -version
+      - name: Set up .NET 10
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.402'
+      - name: Install matching iOS workload
         run: |
-          # xcrun xctrace returns via stderr, not the expected stdout (see https://developer.apple.com/forums/thread/663959)
-          device=`xcrun xctrace list devices 2>&1 | grep -oE 'iPhone.*?[^\(]+' | head -1 | awk '{$1=$1;print}' | sed -e "s/ Simulator$//"`
-          if [ $scheme = default ]; then scheme=$(cat default); fi
-          if [ "`ls -A | grep -i \\.xcworkspace\$`" ]; then filetype_parameter="workspace" && file_to_build="`ls -A | grep -i \\.xcworkspace\$`"; else filetype_parameter="project" && file_to_build="`ls -A | grep -i \\.xcodeproj\$`"; fi
-          file_to_build=`echo $file_to_build | awk '{$1=$1;print}'`
-          xcodebuild build-for-testing -scheme "$scheme" -"$filetype_parameter" "$file_to_build" -destination "platform=$platform,name=$device"
-      - name: Test
-        env:
-          scheme: ${{ 'default' }}
-          platform: ${{ 'iOS Simulator' }}
+          dotnet workload install ios --version 10.0.401
+          dotnet --info
+          dotnet workload --info
+      - name: Build Simulator app (no Apple signing)
+        shell: bash
         run: |
-          # xcrun xctrace returns via stderr, not the expected stdout (see https://developer.apple.com/forums/thread/663959)
-          device=`xcrun xctrace list devices 2>&1 | grep -oE 'iPhone.*?[^\(]+' | head -1 | awk '{$1=$1;print}' | sed -e "s/ Simulator$//"`
-          if [ $scheme = default ]; then scheme=$(cat default); fi
-          if [ "`ls -A | grep -i \\.xcworkspace\$`" ]; then filetype_parameter="workspace" && file_to_build="`ls -A | grep -i \\.xcworkspace\$`"; else filetype_parameter="project" && file_to_build="`ls -A | grep -i \\.xcodeproj\$`"; fi
-          file_to_build=`echo $file_to_build | awk '{$1=$1;print}'`
-          xcodebuild test-without-building -scheme "$scheme" -"$filetype_parameter" "$file_to_build" -destination "platform=$platform,name=$device"
+          set -euo pipefail
+          mkdir -p artifacts
+          sh build-ios.sh simulator 2>&1 | tee artifacts/ios-build.log
+      - name: Package Simulator app
+        shell: bash
+        run: |
+          set -euo pipefail
+          app=$(find QuizDesk.iOS/bin/Debug/net10.0-ios -maxdepth 2 -type d -name 'QuizDesk.iOS.app' -print -quit)
+          test -n "$app" || { echo '::error::Simulator .app was not produced.'; exit 1; }
+          ditto -c -k --sequesterRsrc --keepParent "$app" artifacts/QuizDesk-iOS-Simulator.zip
+      - name: Upload app and build log
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: QuizDesk-iOS-Simulator-${{ github.run_number }}
+          path: artifacts/
+          if-no-files-found: ignore
+          retention-days: 7
