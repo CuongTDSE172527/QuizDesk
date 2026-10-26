@@ -8,6 +8,7 @@ partial class Tests {
     [STAThread] static void Main(string[] args) {
         if(args.Length==0){Console.WriteLine("Usage: QuizDesk.Tests <samples-folder> [original.docx reviewed.docx] OR --settings <test-folder>");return;}
         if(args[0]=="--media"){MediaChecks(args[1],args.Length>2?args[2]:null);return;}
+        if(args[0]=="--batch-import"){BatchImportChecks(args[1]);return;}
         if(args[0]=="--merge"){MergeChecks(args[1]);return;}
         if(args[0]=="--recognition"){RecognitionChecks(args[1],args.Length>2?args[2]:null);return;}
         if(args[0]=="--security"){SecurityChecks(args[1]);return;}

@@ -162,8 +162,10 @@ public partial class MainView : UserControl {
     async void Import() {
         if(busy||!await ConfirmLeave())return;
         try {
-            var files=await Storage.OpenFilePickerAsync(new FilePickerOpenOptions {Title="Nhập bộ đề",AllowMultiple=false,FileTypeFilter=new[]{new FilePickerFileType("Bộ đề") {Patterns=Extensions.Select(x=>"*."+x).ToArray(),MimeTypes=new[]{"*/*"}},FilePickerFileTypes.All}});
+            var files=await Storage.OpenFilePickerAsync(new FilePickerOpenOptions {Title="Nhập một hoặc nhiều file đề",AllowMultiple=true,FileTypeFilter=new[]{new FilePickerFileType("Bộ đề") {Patterns=Extensions.Select(x=>"*."+x).ToArray(),MimeTypes=new[]{"*/*"}},FilePickerFileTypes.All}});
             if(files.Count==0)return;
+            if(files.Count>20){Notify("Mỗi lần nhập tối đa 20 file. Hãy chia thành nhiều lượt.",true);return;}
+            if(files.Count>1){await ImportMany(files);return;}
             busy=true;shell.IsEnabled=false;await using var input=await files[0].OpenReadAsync();string path;
             try{path=await MobileImportCache.CopyAsync(input,files[0].Name,Path.Combine(dataRoot,"ImportCache"));}finally{busy=false;}
             try{await Load(path,files[0].Name);}finally{File.Delete(path);}

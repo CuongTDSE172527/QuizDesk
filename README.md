@@ -459,3 +459,23 @@ câu nhiều đáp án đúng, file mật khẩu hoặc Word trước 97. Không
 Tài liệu nền tảng: https://docs.avaloniaui.net/docs/app-development/cross-platform-solution-setup
 Android: https://docs.avaloniaui.net/docs/deployment/android
 iOS: https://docs.avaloniaui.net/docs/deployment/ios
+
+## Nhập nhiều file cùng lúc
+
+Chọn **Nhập file đề**, chọn từ 2 đến 20 file trong trình chọn file của hệ điều
+hành, rồi chọn **Tách riêng** (mỗi file một bộ đề) hoặc **Gộp tất cả**. Khi gộp,
+đặt tên bộ tổng hợp và tùy chọn trộn thứ tự câu hỏi. Nhập một file vẫn hoạt động
+như trước. Tính năng dùng chung cho giao diện PC và mobile; cách chọn nhiều
+file phụ thuộc trình quản lý file của hệ điều hành.
+
+Mỗi file được phân tích độc lập, ghép câu với bảng đáp án trong chính file đó.
+Sau đó bộ tổng hợp mới được đánh số liên tục từ 1, nên Câu 1 ở hai file không
+bị coi là cùng câu. Nhật ký bộ đề giữ tên file, thứ tự file và số câu ban đầu.
+Đáp án, giải thích, media và trạng thái cần sửa đi theo câu khi trộn. Không tự
+loại câu có nội dung giống nhau. Giới hạn bộ tổng hợp: 5.000 câu và ngân sách
+văn bản/media hiện có của app.
+
+Kết quả nhập hiển thị riêng từng file. Nếu tách, các file hợp lệ được lưu ngay,
+file lỗi được báo để sửa/nhập lại. Nếu gộp, một file lỗi sẽ dừng lượt nhập và
+không tạo bộ tổng hợp thiếu câu. App không tự ghép file chỉ có đáp án sang một
+file đề khác; mỗi file được chọn cần là một bộ đề độc lập.

@@ -25,6 +25,8 @@ public sealed class LibraryBank {
     public WorkspaceBank Content {get;set;}=new();
     public List<BankActivity> Activities {get;set;}=new();
 }
+public sealed record ImportedBank(string SourceName,WorkspaceBank Content);
+
 public sealed record LibraryBankSummary(Guid Id,string Title,int Count,DateTimeOffset CreatedAt,DateTimeOffset? ImportedAt,DateTimeOffset UpdatedAt,string SourceName,DateTimeOffset? DeletedAt=null);
 
 // A bank and its audit trail are committed together: a failed write cannot leave
@@ -76,6 +78,18 @@ public sealed class MobileBankLibrary {
         InputSafety.Require(selected.Length>=2&&selected.Length<=InputSafety.MaxQuestions,"Hãy chọn ít nhất 2 bộ đề khác nhau.");
         title=title?.Trim();InputSafety.Require(!string.IsNullOrWhiteSpace(title)&&title.Length<=200,"Tên bộ đề cần từ 1 đến 200 ký tự.");
         var sources=selected.Select(Load).ToArray();
+        return MergeSources(sources,title,shuffle,defaults,random,false);
+    }
+    // Parse every file independently before this call: answer tables are scoped to their source.
+    public LibraryBank ImportCombined(IEnumerable<ImportedBank> imports,string title,bool shuffle,AppPreferences defaults=null,Random random=null) {
+        var files=imports?.ToArray()??throw new InvalidDataException("Chưa chọn file đề.");
+        InputSafety.Require(files.Length>=2&&files.Length<=20,"Chọn từ 2 đến 20 file để gộp.");
+        title=title?.Trim();InputSafety.Require(!string.IsNullOrWhiteSpace(title)&&title.Length<=200,"Tên bộ đề cần từ 1 đến 200 ký tự.");
+        foreach(var file in files){InputSafety.Require(file!=null&&file.Content!=null,"File đề không hợp lệ.");Validate(file.Content);}
+        var sources=files.Select(f=>new LibraryBank {Content=f.Content,SourceName=Path.GetFileName(f.SourceName??"")}).ToArray();
+        return MergeSources(sources,title,shuffle,defaults,random,true);
+    }
+    LibraryBank MergeSources(LibraryBank[] sources,string title,bool shuffle,AppPreferences defaults,Random random,bool imported) {
         MediaFiles.Check(sources.SelectMany(b=>b.Content.Bank).SelectMany(q=>q.Media));
         InputSafety.Require(sources.All(b=>!b.DeletedAt.HasValue&&b.Content.Bank.Count>0),"Chỉ gộp các bộ đề còn tồn tại và có câu hỏi.");
         InputSafety.Require(sources.Sum(b=>(long)b.Content.Bank.Count)<=InputSafety.MaxQuestions,"Bộ đề gộp tối đa 5.000 câu. Hãy chọn ít bộ đề hơn.");
@@ -85,7 +99,7 @@ public sealed class MobileBankLibrary {
         var pool=new List<(Question question,string origin)>();
         foreach(var source in sources)foreach(var q in source.Content.Bank){
             var copy=new Question {Text=q.Text,Note=q.Note,Answer=q.Answer,OriginalAnswer=q.OriginalAnswer,AnswerSource=q.AnswerSource,NeedsReview=q.NeedsReview,Options=new(q.Options),Media=q.Media.Select(m=>m.Clone()).ToList(),ImportWarnings=new(q.ImportWarnings??new())};
-            pool.Add((copy,$"{OriginTitle(source)} · Câu gốc {q.Number}"));
+            pool.Add((copy,$"{OriginTitle(source)}"+(imported?$" [{Array.IndexOf(sources,source)+1}: {source.SourceName}]":"")+$" · Câu gốc {q.Number}"));
         }
         if(shuffle){random??=Random.Shared;for(int i=pool.Count-1;i>0;i--){int j=random.Next(i+1);(pool[i],pool[j])=(pool[j],pool[i]);}}
         var origins=new List<BankFieldChange>();
@@ -94,7 +108,7 @@ public sealed class MobileBankLibrary {
         setup.ShuffleQuestions=shuffle;setup.ShuffleOptions=false;
         var content=new WorkspaceBank {Title=title,Bank=questions,Setup=setup,HasUnexportedChanges=true};
         var activity=new BankActivity {Kind="merged",Description=$"Gộp {sources.Length} bộ đề · {questions.Count} câu · "+(shuffle?"Trộn thứ tự câu hỏi.":"Giữ thứ tự các bộ nguồn.")+"\n"+string.Join("\n",sources.Select(b=>$"• {OriginTitle(b)}: {b.Content.Bank.Count} câu")),Changes=origins};
-        return Create(content,"",false,Guid.NewGuid(),false,activity);
+        return Create(content,imported?"Nhập nhiều file":"",imported,Guid.NewGuid(),false,activity);
     }
     LibraryBank Create(WorkspaceBank content,string sourceName,bool imported,Guid id,bool migrated,BankActivity extraActivity=null) {
         var snapshot=Clone(content);Validate(snapshot);snapshot.LibraryBankId=id;var now=DateTimeOffset.UtcNow;

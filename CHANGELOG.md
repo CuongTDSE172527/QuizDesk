@@ -1,3 +1,12 @@
+# Chưa phát hành — 26/10/2026
+
+- Nhập tối đa 20 file mỗi lượt; chọn mỗi file thành một bộ đề hoặc gộp thành
+  một bộ tổng hợp, có thể trộn thứ tự câu hỏi.
+- Đọc câu hỏi và bảng đáp án theo từng file trước khi gộp. Đánh số lại từ 1,
+  giữ đáp án, giải thích, media và cảnh báo; nhật ký ghi file/số câu gốc.
+- Báo kết quả từng file. Chế độ tách vẫn lưu các file hợp lệ khi file khác lỗi;
+  chế độ gộp chỉ tạo bộ tổng hợp khi toàn bộ file hợp lệ, tối đa 5.000 câu.
+
 # QuizDesk 5.11.0 — 25/10/2026
 
 - Thêm media cho câu hỏi, lựa chọn A–H và giải thích: PNG/JPEG/WebP/GIF,
