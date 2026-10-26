@@ -1,4 +1,4 @@
-name: iOS Simulator build
+name: iOS build (Simulator and iPhone IPA)
 
 on:
   workflow_dispatch:
@@ -69,5 +69,58 @@ jobs:
         with:
           name: QuizDesk-iOS-Simulator-${{ github.run_number }}
           path: artifacts/
+          if-no-files-found: ignore
+          retention-days: 7
+
+  unsigned-ipa:
+    name: Build unsigned IPA for iPhone
+    runs-on: macos-26
+    timeout-minutes: 45
+    env:
+      DOTNET_CLI_TELEMETRY_OPTOUT: '1'
+      AVALONIA_TELEMETRY_OPTOUT: '1'
+      DOTNET_NOLOGO: '1'
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Select Xcode 26.6
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -d /Applications/Xcode_26.6.app || { echo '::error::Xcode 26.6 is missing from this runner image.'; ls -d /Applications/Xcode*.app; exit 1; }
+          sudo xcode-select --switch /Applications/Xcode_26.6.app/Contents/Developer
+          xcodebuild -version
+      - name: Set up .NET 10
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.402'
+      - name: Install matching iOS workload
+        run: |
+          dotnet workload install ios --version 10.0.401
+          dotnet --info
+          dotnet workload --info
+      - name: Build device IPA without Apple credentials
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p artifacts
+          sh build-ios.sh unsigned 2>&1 | tee artifacts/ios-device-build.log
+      - name: Upload unsigned IPA
+        uses: actions/upload-artifact@v4
+        with:
+          name: QuizDesk-iPhone-unsigned-IPA-${{ github.run_number }}
+          path: |
+            dist/ios/QuizDesk-ios-arm64-unsigned.ipa
+            dist/ios/QuizDesk-ios-arm64-unsigned.ipa.sha256
+          if-no-files-found: error
+          retention-days: 7
+      - name: Upload device build log
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: QuizDesk-iPhone-build-log-${{ github.run_number }}
+          path: artifacts/ios-device-build.log
           if-no-files-found: ignore
           retention-days: 7

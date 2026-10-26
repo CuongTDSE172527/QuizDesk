@@ -349,13 +349,12 @@ Khóa dùng ký APK bàn giao được giữ ở workspace gốc, không nằm t
 không thể cập nhật đè APK cũ. Muốn giữ dữ liệu qua cập nhật, phải giữ cùng khóa.
 Chọn khóa phân phối riêng trước khi đưa lên store.
 
-## iOS: mã nguồn, chưa có IPA
+## iOS: Simulator và IPA cài thử
 
 `QuizDesk.iOS` có entry point, AppDelegate, manifest iPhone/iPad, launch screen,
 app icon, Files import và share sheet để xuất file. Mục tiêu iOS 15+.
-Chưa build hoặc chạy trên iOS vì không có Mac/Xcode; không có IPA/TestFlight.
-Lõi và giao diện chung đã compile/test trên .NET; phần UIKit và AOT/linker cần
-được build, kiểm tra trên Mac. Không khẳng định project iOS đã compile thành công.
+Bản Simulator đã build thành công trên GitHub Actions. Chưa xác nhận build Release
+cho iPhone hoặc chạy trên iPhone thật; AOT/trimming và sideload cần được kiểm tra.
 
 Trên Mac, cài Xcode tương thích với workload .NET iOS, chọn Xcode bằng
 `xcode-select`, hoàn thành thiết lập Xcode và cài .NET 10 SDK. Sau đó:
@@ -373,7 +372,7 @@ xcrun simctl install booted path/to/QuizDesk.iOS.app
 xcrun simctl launch booted com.quizdesk.mobile
 ```
 
-Để build cho iPhone thật/IPA, cần signing identity và provisioning profile phù hợp:
+Để build IPA đã ký cho iPhone, cần signing identity và provisioning profile phù hợp:
 
 ```sh
 export IOS_CODESIGN_KEY='Apple Development: Your Name (...)'
@@ -384,6 +383,35 @@ sh build-ios.sh device
 Chứng chỉ/profile phải khớp `com.quizdesk.mobile`, hoặc đổi ApplicationId trước
 khi tạo profile. Việc đưa lên TestFlight/App Store nằm ngoài bản bàn giao này.
 Script không đăng nhập Apple hay tải app lên store.
+
+### GitHub Actions: IPA chưa ký cho Apple ID thường
+
+Workflow `.github/workflows/ios.yml` có hai job độc lập: Simulator và iPhone.
+Push thay đổi lên `main`, hoặc vào **Actions → iOS build (Simulator and iPhone IPA)
+→ Run workflow**. Chờ job **Build unsigned IPA for iPhone** thành công.
+Trong **Artifacts**, tải `QuizDesk-iPhone-unsigned-IPA-<số run>`, giải nén để lấy
+`QuizDesk-ios-arm64-unsigned.ipa`. Artifact Simulator chứa `.app`, không cài lên iPhone.
+Log build iPhone nằm trong artifact `QuizDesk-iPhone-build-log-<số run>` kể cả khi build lỗi.
+Artifact được giữ 7 ngày; đây là thời gian lưu trên GitHub, khác hạn ký Apple.
+
+Có thể tạo cùng IPA trên Mac bằng `sh build-ios.sh unsigned`.
+Script build Release `ios-arm64`, không ký Apple, kiểm tra kiến trúc/platform của
+binary rồi đóng gói `Payload/QuizDesk.iOS.app` vào `dist/ios/*.ipa`, kèm SHA-256.
+Không dùng Apple ID, chứng chỉ hay provisioning profile trong GitHub Actions.
+IPA này cần ký lại trước khi cài; không thể cài trực tiếp từ Files hay Safari.
+
+Để thử bằng Apple ID thường trên Windows:
+
+1. Cài AltServer và AltStore Classic theo hướng dẫn chính thức:
+   https://faq.altstore.io/altstore-classic/how-to-install-altstore-windows
+2. Kết nối iPhone, tin cậy máy tính và cài AltStore. Nhập Apple ID trực tiếp vào
+   công cụ cài trên máy cá nhân, không lưu trong source hoặc GitHub Secrets.
+3. Chuyển IPA sang iPhone, mở AltStore → My Apps → dấu `+` → chọn IPA.
+4. Bật Developer Mode nếu iOS yêu cầu, hoàn tất bước tin cậy rồi chạy QuizDesk.
+5. Chữ ký miễn phí có hạn 7 ngày; refresh qua AltServer trước khi hết hạn.
+
+Luồng này phục vụ cài thử cá nhân, không phải phát hành qua TestFlight/App Store.
+Chưa kiểm chứng cài/chạy QuizDesk qua AltStore trên iPhone thật.
 
 ## Chạy source và kiểm tra
 
