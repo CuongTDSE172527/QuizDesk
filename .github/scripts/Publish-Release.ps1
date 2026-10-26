@@ -1,5 +1,6 @@
 param(
     [Parameter(Mandatory)][ValidatePattern('^v[0-9]+\.[0-9]+\.[0-9]+$')][string]$Tag,
+    [Parameter(Mandatory)][ValidatePattern('^[a-fA-F0-9]{40}$')][string]$Commit,
     [Parameter(Mandatory)][ValidateSet('android','windows')][string]$Platform,
     [Parameter(Mandatory)][string]$Directory
 )
@@ -15,15 +16,28 @@ foreach($file in $files){if(-not (Test-Path -LiteralPath $file -PathType Leaf)){
 $actual=(Get-FileHash -LiteralPath $files[0] -Algorithm SHA256).Hash.ToLowerInvariant()
 $record=[IO.File]::ReadAllText($files[1]).Trim()
 if($record -cne "$actual  $asset"){throw 'Downloaded release asset does not match its SHA-256 manifest.'}
-# Both workflows serialize this step with a shared concurrency group.
-$json=(& gh api "repos/$env:GITHUB_REPOSITORY/releases/tags/$Tag" 2>$null | Out-String)
-if($LASTEXITCODE -ne 0){
-    & gh release create $Tag --repo $env:GITHUB_REPOSITORY --verify-tag --title "QuizDesk $version" --generate-notes
-    if($LASTEXITCODE -ne 0){throw 'Cannot create GitHub Release. Verify repository Actions write permissions and tag.'}
-    $json=(& gh api "repos/$env:GITHUB_REPOSITORY/releases/tags/$Tag" | Out-String)
-    if($LASTEXITCODE -ne 0){throw 'Cannot read created release.'}
+# Both workflows serialize tag creation and publication with a shared concurrency group.
+. (Join-Path $PSScriptRoot 'GitHub-Api.ps1')
+$refEndpoint="repos/$env:GITHUB_REPOSITORY/git/ref/tags/$Tag"
+$reference=Get-GitHubJson $refEndpoint
+if($null -eq $reference){
+    & gh api --method POST "repos/$env:GITHUB_REPOSITORY/git/refs" -f "ref=refs/tags/$Tag" -f "sha=$Commit" | Out-Null
+    if($LASTEXITCODE -ne 0){throw 'Cannot create release tag at the built commit.'}
+    $reference=Get-GitHubJson $refEndpoint
 }
-$release=$json | ConvertFrom-Json
+$target=$reference.object
+for($depth=0;$null -ne $target -and $target.type -eq 'tag' -and $depth -lt 8;$depth++){
+    $annotated=Get-GitHubJson "repos/$env:GITHUB_REPOSITORY/git/tags/$($target.sha)"
+    $target=$annotated.object
+}
+if($null -eq $target -or $target.type -ne 'commit' -or $target.sha -ine $Commit){throw "Tag $Tag does not point to the built commit $Commit. Existing tags will not be moved. Build from the tag or use a new version."}
+$release=Get-GitHubJson "repos/$env:GITHUB_REPOSITORY/releases/tags/$Tag"
+if($null -eq $release){
+    & gh release create $Tag --repo $env:GITHUB_REPOSITORY --verify-tag --title "QuizDesk $version" --generate-notes
+    if($LASTEXITCODE -ne 0){throw 'Cannot create GitHub Release. Verify repository Actions write permissions.'}
+    $release=Get-GitHubJson "repos/$env:GITHUB_REPOSITORY/releases/tags/$Tag"
+    if($null -eq $release){throw 'Cannot read created release.'}
+}
 if($release.tag_name -cne $Tag){throw 'Unexpected release tag.'}
 foreach($file in $files){
     $name=[IO.Path]::GetFileName($file);$hash=(Get-FileHash -LiteralPath $file -Algorithm SHA256).Hash.ToLowerInvariant()

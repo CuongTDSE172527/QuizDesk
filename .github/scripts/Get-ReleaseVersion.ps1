@@ -1,5 +1,10 @@
-param([Parameter(Mandatory)][string]$Tag)
+param([string]$Tag="")
 $ErrorActionPreference='Stop'
+if([string]::IsNullOrWhiteSpace($Tag)){
+    $project=Join-Path (Split-Path (Split-Path $PSScriptRoot)) 'QuizDesk.Mobile/QuizDesk.Mobile.csproj'
+    [xml]$source=Get-Content -LiteralPath $project -Raw
+    $Tag='v'+$source.SelectSingleNode('/Project/PropertyGroup/Version').InnerText
+}
 if($Tag -cnotmatch '^v([0-9]+\.[0-9]+\.[0-9]+)$'){throw 'Use a release tag such as v5.12.0 (three numeric components).'}
 $version=$Matches[1]
 $root=Split-Path (Split-Path $PSScriptRoot)

@@ -1,4 +1,8 @@
-# Chưa phát hành — 26/10/2026
+# QuizDesk 5.12.0 — đang chuẩn bị phát hành (26/10/2026)
+
+- Sửa checkout khi chạy release thủ công: dùng nhánh/tag đang chọn, tự lấy tag
+  từ version source nếu để trống, tạo tag mới tại commit đã build khi publish.
+  Chặn tag trỏ sai commit; đồng bộ version 5.12.0, Android build 60101 và iOS build 16.
 
 - Thêm GitHub Actions build APK đã ký và bộ cài EXE Windows theo tag; tự đưa
   file/SHA-256 vào cùng Release, kiểm tra version và giữ nguyên các asset đã phát hành.

@@ -5,8 +5,8 @@ Hai workflow độc lập:
 - `.github/workflows/android-release.yml`: APK universal ARM64/x64, ký bằng khóa gốc.
 - `.github/workflows/windows-release.yml`: Windows x64 self-contained, đóng gói Inno Setup EXE.
 
-Cả hai chạy khi push tag `vX.Y.Z`, hoặc chạy thủ công trong Actions với **tag đã
-có**, trỏ đến commit chứa workflow và các script mới. Push nhánh `main` thông
+Cả hai chạy khi push tag `vX.Y.Z`, hoặc chạy thủ công trong Actions trên nhánh/tag
+được chọn. Tag nhập thủ công có thể chưa tồn tại. Push nhánh `main` thông
 thường không tự phát hành. Workflow iOS vẫn hoạt động riêng như trước.
 
 ## Thiết lập Android một lần
@@ -79,10 +79,24 @@ EXE hiện không ký Authenticode; workflow không thêm chứng chỉ Windows.
 
 ## Chạy thủ công / thử lại
 
-Sau khi workflow có trên nhánh mặc định, vào workflow tương ứng → **Run workflow**,
-nhập tag đã có và chứa các script mới. Workflow checkout chính tag đó, kiểm tra
-version source phải khớp tag. Tag cũ từ trước khi thêm CI không có các script này.
-Không dùng tag `v5.11.0` đã phát hành để đưa nội dung mới lên thay thế.
+Sau khi commit/push thay đổi lên nhánh mặc định:
+
+1. Vào workflow tương ứng → **Run workflow** → chọn nhánh `main`.
+2. Để trống ô `tag` để dùng version source (hiện là `v5.12.0`), hoặc nhập tag
+   khớp version. Không cần tự tạo tag trước khi chạy thủ công.
+3. Chạy cả **Windows EXE release** và **Android APK release** trên cùng một commit.
+4. Sau khi build thành công, job publish tạo tag tại đúng commit đã build nếu
+   tag chưa có. Tag đã có phải trỏ đúng commit đó (cũng hỗ trợ annotated tag).
+
+Nếu một tag đã trỏ đến commit khác, workflow dừng, không di chuyển tag hay ghi
+đè file đã phát hành. Để build lại đúng source cũ, chọn chính tag đó ở dropdown
+**Use workflow from**, hoặc tăng version và phát hành tag mới. Tag được chọn
+phải chứa workflow/script mới. Không dùng `v5.11.0` để phát hành source mới.
+
+GitHub không kích hoạt workflow khác từ tag tạo bằng `GITHUB_TOKEN`, nên khi
+chạy thủ công cần chạy cả hai workflow; workflow Windows không tự gọi Android.
+Muốn tự chạy cả hai bằng một thao tác, vẫn có thể tạo/push tag phiên bản từ máy
+cá nhân như phần trên.
 
 Build và publish là hai job riêng. Build/test thất bại thì không upload lên
 Release; platform còn lại vẫn có thể hoàn tất độc lập. Nếu chỉ publish lỗi,
@@ -98,11 +112,12 @@ Build lại toàn bộ có thể tạo bytes khác do thời gian đóng gói, n
 
 ## Kiểm tra và quyền
 
-- Chạy 12 kiểm thử publish giả lập (không ghi GitHub), 19 kiểm thử nhập nhiều file,
+- Chạy 18 kiểm thử publish giả lập (không ghi GitHub), 19 kiểm thử nhập nhiều file,
   30 gộp đề và 39 media trước khi đóng gói.
 - Kiểm tra SHA-256 artifact tải xuống trước khi publish.
 - Actions được pin vào commit SHA của bản chính thức.
 - Build job chỉ có `contents: read`; publish job mới có `contents: write`.
-- Không chạy workflow release với pull request hoặc nhánh không có tag.
+- Không chạy workflow release với pull request. Chạy thủ công dùng nhánh/tag được chọn;
+  tag mới chỉ được tạo trong job publish sau khi build thành công.
 - Android cần GitHub Secrets trước lượt chạy đầu; Windows không cần signing secret.
 - Chưa chạy build APK/EXE hoặc publish thật trên GitHub cho các workflow mới.

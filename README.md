@@ -1,4 +1,4 @@
-# QuizDesk 5.11.0 — Windows, macOS, Android và mã nguồn iOS
+# QuizDesk 5.12.0 — Windows, macOS, Android và mã nguồn iOS
 
 [Tải bản cài / Releases](https://github.com/CuongTDSE172527/QuizDesk/releases/latest) · [Changelog](CHANGELOG.md)
 

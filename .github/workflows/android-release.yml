@@ -6,8 +6,8 @@ on:
   workflow_dispatch:
     inputs:
       tag:
-        description: 'Existing release tag containing these workflows (for example v5.12.0)'
-        required: true
+        description: 'Optional tag matching source version; leave blank to use the version in source'
+        required: false
         type: string
 
 permissions:
@@ -34,15 +34,15 @@ jobs:
       run:
         shell: pwsh
     steps:
-      - name: Checkout release tag
+      - name: Checkout selected source
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          ref: ${{ github.event_name == 'workflow_dispatch' && format('refs/tags/{0}', inputs.tag) || github.ref }}
+          ref: ${{ github.ref }}
           persist-credentials: false
       - name: Validate release version
         id: version
         env:
-          RELEASE_TAG: ${{ github.event.inputs.tag || github.ref_name }}
+          RELEASE_TAG: ${{ github.event.inputs.tag || (github.ref_type == 'tag' && github.ref_name) || '' }}
         run: ./.github/scripts/Get-ReleaseVersion.ps1 -Tag $env:RELEASE_TAG
       - name: Pin SDK resolver
         run: |
@@ -113,4 +113,5 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
           RELEASE_TAG: ${{ needs.build.outputs.tag }}
-        run: ./.github/scripts/Publish-Release.ps1 -Tag $env:RELEASE_TAG -Platform android -Directory dist/release-android
+          RELEASE_COMMIT: ${{ needs.build.outputs.commit }}
+        run: ./.github/scripts/Publish-Release.ps1 -Tag $env:RELEASE_TAG -Commit $env:RELEASE_COMMIT -Platform android -Directory dist/release-android

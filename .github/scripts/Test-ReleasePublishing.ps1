@@ -4,10 +4,24 @@ $testTemp=if($env:RUNNER_TEMP){$env:RUNNER_TEMP}else{[IO.Path]::GetTempPath()}
 $folder=Join-Path $testTemp ('release-tests-'+[Guid]::NewGuid().ToString('N'));New-Item -ItemType Directory -Path $folder | Out-Null
 $publish=Join-Path $Repository '.github/scripts/Publish-Release.ps1'
 $global:QDReleaseTestCalls=[Collections.Generic.List[string]]::new();$global:QDReleaseTestExists=$false;$global:QDReleaseTestAssets=@();$global:QDReleaseTestDraft=$false
+$global:QDReleaseTestCommit='aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa'
+$global:QDReleaseTestTagCommit=$global:QDReleaseTestCommit
+$global:QDReleaseTestTagExists=$true;$global:QDReleaseTestAnnotated=$false;$global:QDReleaseTestForbidden=$false
 function gh {
     $a=@($args);$global:QDReleaseTestCalls.Add(($a -join ' '));$global:LASTEXITCODE=0
     if($a[0] -eq 'api'){
-        if(-not $global:QDReleaseTestExists){$global:LASTEXITCODE=1;return}
+        if($a[1] -eq '--method'){
+            $global:QDReleaseTestTagExists=$true
+            $global:QDReleaseTestTagCommit=(@($a | Where-Object {$_ -like 'sha=*'})[0]).Substring(4)
+            return
+        }
+        if($global:QDReleaseTestForbidden){Write-Error 'Forbidden (HTTP 403)' -ErrorAction Continue;$global:LASTEXITCODE=1;return}
+        if($a[1] -like '*/git/ref/tags/*'){
+            if(-not $global:QDReleaseTestTagExists){Write-Error 'Not Found (HTTP 404)' -ErrorAction Continue;$global:LASTEXITCODE=1;return}
+            @{object=@{type=$(if($global:QDReleaseTestAnnotated){'tag'}else{'commit'});sha=$global:QDReleaseTestTagCommit}} | ConvertTo-Json -Compress;return
+        }
+        if($a[1] -like '*/git/tags/*'){@{object=@{type='commit';sha=$global:QDReleaseTestTagCommit}} | ConvertTo-Json -Compress;return}
+        if(-not $global:QDReleaseTestExists){Write-Error 'Not Found (HTTP 404)' -ErrorAction Continue;$global:LASTEXITCODE=1;return}
         @{tag_name='v5.11.0';html_url='https://example.invalid/release';assets=@($global:QDReleaseTestAssets);draft=$global:QDReleaseTestDraft} | ConvertTo-Json -Depth 5 -Compress;return
     }
     if($a[0] -eq 'release' -and $a[1] -eq 'create'){$global:QDReleaseTestExists=$true;return}
@@ -23,22 +37,22 @@ $env:GH_TOKEN='test-placeholder';$env:GITHUB_REPOSITORY='fixture/quizdesk';$env:
 $file=Join-Path $folder 'QuizDesk-Setup-5.11.0-x64.exe';$manifest=Join-Path $folder 'QuizDesk-5.11.0-Windows-SHA256.txt'
 [IO.File]::WriteAllText($file,'Fixture only; never execute')
 $hash=(Get-FileHash $file).Hash.ToLowerInvariant();"$hash  $([IO.Path]::GetFileName($file))" | Set-Content $manifest -Encoding ascii
-& $publish -Tag v5.11.0 -Platform windows -Directory $folder
+& $publish -Tag v5.11.0 -Commit $global:QDReleaseTestCommit -Platform windows -Directory $folder
 Check (@($global:QDReleaseTestCalls | Where-Object {$_ -like 'release create*'}).Count -eq 1 -and @($global:QDReleaseTestCalls | Where-Object {$_ -like 'release upload*'}).Count -eq 2) 'Creates a release and uploads exactly installer plus checksum'
 $global:QDReleaseTestCalls.Clear();$global:QDReleaseTestAssets=@($file,$manifest) | ForEach-Object { @{name=[IO.Path]::GetFileName($_);digest='sha256:'+(Get-FileHash $_).Hash.ToLowerInvariant()} }
-& $publish -Tag v5.11.0 -Platform windows -Directory $folder
+& $publish -Tag v5.11.0 -Commit $global:QDReleaseTestCommit -Platform windows -Directory $folder
 Check (@($global:QDReleaseTestCalls | Where-Object {$_ -like 'release upload*'}).Count -eq 0) 'Rerun skips identical published assets'
 $global:QDReleaseTestCalls.Clear();$global:QDReleaseTestAssets[0].digest='sha256:different'
-Reject {& $publish -Tag v5.11.0 -Platform windows -Directory $folder} 'Refuses to overwrite published bytes'
+Reject {& $publish -Tag v5.11.0 -Commit $global:QDReleaseTestCommit -Platform windows -Directory $folder} 'Refuses to overwrite published bytes'
 Check (@($global:QDReleaseTestCalls | Where-Object {$_ -like 'release upload*'}).Count -eq 0) 'Conflict detected before upload'
 $global:QDReleaseTestCalls.Clear();[IO.File]::WriteAllText($manifest,'tampered')
-Reject {& $publish -Tag v5.11.0 -Platform windows -Directory $folder} 'Refuses an artifact whose checksum was tampered'
+Reject {& $publish -Tag v5.11.0 -Commit $global:QDReleaseTestCommit -Platform windows -Directory $folder} 'Refuses an artifact whose checksum was tampered'
 Check ($global:QDReleaseTestCalls.Count -eq 0) 'Checksum failure causes no GitHub operation'
 "$hash  $([IO.Path]::GetFileName($file))" | Set-Content $manifest -Encoding ascii
 $global:QDReleaseTestAssets=@();$global:QDReleaseTestDraft=$true
-& $publish -Tag v5.11.0 -Platform windows -Directory $folder
+& $publish -Tag v5.11.0 -Commit $global:QDReleaseTestCommit -Platform windows -Directory $folder
 Check (@($global:QDReleaseTestCalls | Where-Object {$_ -like 'release edit*--draft=false'}).Count -eq 1) 'Publishes an existing draft after successful upload'
-Reject {& $publish -Tag '../unsafe' -Platform windows -Directory $folder} 'Rejects invalid release tags'
+Reject {& $publish -Tag '../unsafe' -Commit $global:QDReleaseTestCommit -Platform windows -Directory $folder} 'Rejects invalid release tags'
 [xml]$android=Get-Content -LiteralPath (Join-Path $Repository 'QuizDesk.Android/QuizDesk.Android.csproj') -Raw
 $sourceVersion=$android.Project.PropertyGroup.ApplicationDisplayVersion
 $env:GITHUB_OUTPUT=Join-Path $folder 'outputs.txt'
@@ -50,10 +64,23 @@ $global:QDReleaseTestCalls.Clear();$global:QDReleaseTestAssets=@();$global:QDRel
 $apk=Join-Path $folder 'QuizDesk-5.11.0-Android.apk';$apkManifest=Join-Path $folder 'QuizDesk-5.11.0-Android-SHA256.txt'
 [IO.File]::WriteAllText($apk,'APK fixture only')
 $apkHash=(Get-FileHash $apk).Hash.ToLowerInvariant();"$apkHash  $([IO.Path]::GetFileName($apk))" | Set-Content $apkManifest -Encoding ascii
-& $publish -Tag v5.11.0 -Platform android -Directory $folder
+& $publish -Tag v5.11.0 -Commit $global:QDReleaseTestCommit -Platform android -Directory $folder
 Check (@($global:QDReleaseTestCalls | Where-Object {$_ -like 'release create*'}).Count -eq 0 -and @($global:QDReleaseTestCalls | Where-Object {$_ -like 'release upload*Android*'}).Count -eq 2) 'Android attaches APK and checksum to the same existing release'
-Write-Output 'All 12 release automation checks passed; gh was mocked (no network writes).'
+& (Join-Path $Repository '.github/scripts/Get-ReleaseVersion.ps1')
+Check ([IO.File]::ReadAllText($env:GITHUB_OUTPUT).Contains('tag=v'+$sourceVersion)) 'Blank manual tag derives the version tag from source'
+$global:QDReleaseTestCalls.Clear();$global:QDReleaseTestTagExists=$false
+& $publish -Tag v5.11.0 -Commit $global:QDReleaseTestCommit -Platform android -Directory $folder
+Check (@($global:QDReleaseTestCalls | Where-Object {$_ -like 'api --method POST *git/refs*sha=aaaaaaaa*'}).Count -eq 1) 'Missing tag is created at the exact successfully built commit'
+$global:QDReleaseTestCalls.Clear();$global:QDReleaseTestTagCommit='bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb'
+Reject {& $publish -Tag v5.11.0 -Commit $global:QDReleaseTestCommit -Platform android -Directory $folder} 'An existing tag at another commit cannot publish new build bytes'
+Check (@($global:QDReleaseTestCalls | Where-Object {$_ -like 'api --method POST*' -or $_ -like 'release *'}).Count -eq 0) 'Conflicting tag is never moved and release is untouched'
+$global:QDReleaseTestCalls.Clear();$global:QDReleaseTestTagCommit=$global:QDReleaseTestCommit;$global:QDReleaseTestForbidden=$true
+Reject {& $publish -Tag v5.11.0 -Commit $global:QDReleaseTestCommit -Platform android -Directory $folder} 'API authorization failure is not treated as a missing tag'
+$global:QDReleaseTestForbidden=$false;$global:QDReleaseTestAnnotated=$true;$global:QDReleaseTestCalls.Clear()
+& $publish -Tag v5.11.0 -Commit $global:QDReleaseTestCommit -Platform android -Directory $folder
+Check (@($global:QDReleaseTestCalls | Where-Object {$_ -like 'api *git/tags/*'}).Count -eq 1) 'Annotated tag is resolved to the built commit'
+Write-Output 'All 18 release automation checks passed; gh was mocked (no network writes).'
 } finally {
     foreach($key in $originalEnvironment.Keys){[Environment]::SetEnvironmentVariable($key,$originalEnvironment[$key])}
-    Remove-Variable -Name QDReleaseTestCalls,QDReleaseTestExists,QDReleaseTestAssets,QDReleaseTestDraft -Scope Global -ErrorAction SilentlyContinue
+    Remove-Variable -Name QDReleaseTestCalls,QDReleaseTestExists,QDReleaseTestAssets,QDReleaseTestDraft,QDReleaseTestCommit,QDReleaseTestTagCommit,QDReleaseTestTagExists,QDReleaseTestAnnotated,QDReleaseTestForbidden -Scope Global -ErrorAction SilentlyContinue
 }
