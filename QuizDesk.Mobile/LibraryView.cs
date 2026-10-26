@@ -32,13 +32,13 @@ public partial class MainView {
         List<LibraryBankSummary> items;
         try{items=library.List(out string warning);if(warning!="")Notify(warning,true);}
         catch(Exception ex){Notify("Không đọc được thư viện: "+ex.Message,true);return;}
-        page.Children.Add(Supporting($"{items.Count} bộ đề · Ngày giờ theo múi giờ thiết bị",12));
+        page.Children.Add(Supporting($"{items.Count} bộ đề · Ctrl+A / ⌘A: chọn tất cả · Ngày giờ theo múi giờ thiết bị",12));
         libraryItems=items;selectedBanks.IntersectWith(items.Select(b=>b.Id));
         if(items.Count==0){page.Children.Add(Card(Stack(Text("Thư viện đang trống",22),Supporting("Nhập tài liệu hoặc tạo bộ đề mới. Các bộ đề được giữ riêng trên thiết bị."),Btn("Thử bộ mẫu",LoadSample))));return;}
         page.Children.Add(Btn(selectingBanks?"Xong":"Chọn bộ đề",()=>{if(!PersistBank())return;selectingBanks=!selectingBanks;expandedBankId=null;selectedBanks.Clear();Navigate("bank");}));
         if(selectingBanks) {
             bankSelectionSummary=Supporting("",13);page.Children.Add(bankSelectionSummary);
-            mergeBanksButton=Btn("Gộp đã chọn",MergeSelectedBanks,true);mergeBanksButton.IsEnabled=false;
+            mergeBanksButton=Btn("Trích câu / gộp",MergeSelectedBanks,true);mergeBanksButton.IsEnabled=false;
             deleteBanksButton=Btn("Xóa đã chọn",DeleteSelectedBanks);deleteBanksButton.IsEnabled=false;
             page.Children.Add(Row(Btn("Chọn tất cả bộ đề",()=>{foreach(var check in libraryChecks.Values)check.IsChecked=true;}),Btn("Bỏ chọn bộ đề",()=>{foreach(var check in libraryChecks.Values)check.IsChecked=false;}),mergeBanksButton,deleteBanksButton));
         }
@@ -64,8 +64,8 @@ public partial class MainView {
     }
     void UpdateBankSelection(){
         if(!selectingBanks)return;var items=libraryItems.Where(b=>selectedBanks.Contains(b.Id)).ToList();long total=items.Sum(b=>(long)b.Count);
-        bankSelectionSummary.Text=$"Đã chọn {items.Count} bộ đề · {total:N0} câu"+(total>5000?" · Vượt giới hạn gộp 5.000 câu":items.Any(b=>b.Count==0)?" · Bộ đề trống cần được bỏ chọn để gộp":items.Count<2?" · Chọn ít nhất 2 bộ đề để gộp":"");
-        mergeBanksButton.Content=$"Gộp đã chọn ({items.Count})";mergeBanksButton.IsEnabled=items.Count>=2&&items.All(b=>b.Count>0)&&total<=5000;
+        bankSelectionSummary.Text=$"Đã chọn {items.Count} bộ đề · {total:N0} câu"+(total>5000?" · Chọn số câu trích để tổng không quá 5.000":items.Any(b=>b.Count==0)?" · Bộ đề trống cần được bỏ chọn để gộp":items.Count<2?" · Chọn ít nhất 2 bộ đề để gộp":"");
+        mergeBanksButton.Content=$"Trích câu / gộp ({items.Count})";mergeBanksButton.IsEnabled=items.Count>=2&&items.All(b=>b.Count>0);
         deleteBanksButton.Content=$"Xóa đã chọn ({items.Count})";deleteBanksButton.IsEnabled=items.Count>0;
     }
     async void DeleteSelectedBanks() {

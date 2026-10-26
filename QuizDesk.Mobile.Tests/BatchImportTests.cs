@@ -37,7 +37,7 @@ partial class Tests {
         Reject(()=>library.ImportCombined(new[]{imports[0],new ImportedBank("bad.quiz",invalid)},"Invalid",false),"Invalid source creates no partial combined bank");
         Reject(()=>library.ImportCombined(imports," ",false),"Blank combined title rejected before writing");
         Reject(()=>library.ImportCombined(new[]{imports[0]},"Only one",false),"One file cannot masquerade as a combined import");
-        Reject(()=>library.ImportCombined(Enumerable.Repeat(imports[0],21),"Too many",false),"Batch of more than twenty files rejected");
+        Check(library.ImportCombined(Enumerable.Repeat(imports[0],21),"Many files",false).Content.Bank.Count==42,"Batch accepts more than twenty files within content budgets");
         merged.Content.Bank[0].Options["A"]="Changed";Check(imports[0].Content.Bank[0].Options["A"]=="One","Merged choices are independent deep copies");
         Console.WriteLine("TOTAL "+checks+" batch import checks passed.");
     }

@@ -62,6 +62,7 @@ public partial class MainView : UserControl {
     public MainView(string folder=null) {
         dataRoot=folder??MobilePlatform.DataDirectory??Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),"QuizDesk");
         studyStore=new FlashcardStore(Path.Combine(dataRoot,"Study"));restoredStudy=studyStore.Load(out string studyWarning);
+        AddHandler(KeyDownEvent,LibrarySelectKey,Avalonia.Interactivity.RoutingStrategies.Tunnel);
         AddHandler(KeyDownEvent,StudyKey,Avalonia.Interactivity.RoutingStrategies.Tunnel);
         preferencesStore=new PreferencesStore(Path.Combine(dataRoot,"settings.json"));preferences=preferencesStore.Load(out string settingsWarning);
         historyStore=new HistoryStore(Path.Combine(dataRoot,"History"));workspace=new MobileWorkspace(dataRoot);library=new MobileBankLibrary(Path.Combine(dataRoot,"Library"));
@@ -164,7 +165,6 @@ public partial class MainView : UserControl {
         try {
             var files=await Storage.OpenFilePickerAsync(new FilePickerOpenOptions {Title="Nhập một hoặc nhiều file đề",AllowMultiple=true,FileTypeFilter=new[]{new FilePickerFileType("Bộ đề") {Patterns=Extensions.Select(x=>"*."+x).ToArray(),MimeTypes=new[]{"*/*"}},FilePickerFileTypes.All}});
             if(files.Count==0)return;
-            if(files.Count>20){Notify("Mỗi lần nhập tối đa 20 file. Hãy chia thành nhiều lượt.",true);return;}
             if(files.Count>1){await ImportMany(files);return;}
             busy=true;shell.IsEnabled=false;await using var input=await files[0].OpenReadAsync();string path;
             try{path=await MobileImportCache.CopyAsync(input,files[0].Name,Path.Combine(dataRoot,"ImportCache"));}finally{busy=false;}
@@ -192,7 +192,7 @@ public partial class MainView : UserControl {
         page.Children.Add(Row(Btn("Đổi tên bộ đề",RenameBank),Btn("Thu gọn",()=>{expandedBankId=null;Navigate("bank");}),Btn("Flashcards",StartStudy)));
         var clear=clearQuestionsButton=Btn("Xóa tất cả",DeleteAllQuestions);clear.IsEnabled=bank.Count>0;
         var tools=new Grid {ColumnDefinitions=new ColumnDefinitions("*,*,*"),ColumnSpacing=8};
-        var actions=new[]{Btn("Thêm câu",()=>Edit(null),true),Btn("Xuất .quiz",Save),Btn("Làm bài",()=>Navigate("setup"))};
+        var actions=new[]{Btn("Thêm câu",()=>Edit(null),true),Btn("Xuất bộ đề",ChooseExport),Btn("Làm bài",()=>Navigate("setup"))};
         for(int i=0;i<actions.Length;i++){actions[i].Padding=new Thickness(8,10);actions[i].HorizontalAlignment=HorizontalAlignment.Stretch;Grid.SetColumn(actions[i],i);tools.Children.Add(actions[i]);}page.Children.Add(tools);
         var search=questionSearch=new TextBox {PlaceholderText="Tìm câu hỏi theo nội dung hoặc số câu…"};page.Children.Add(search);
         reviewSummaryText=Text("",13);reviewSummaryCard=ReviewCard(reviewSummaryText);page.Children.Add(reviewSummaryCard);
@@ -279,7 +279,7 @@ public partial class MainView : UserControl {
         var apply=Btn("Áp dụng cho bộ đề đang mở",()=>{ApplyPreferencesToBank();Notify("Đã áp dụng cài đặt mặc định cho bộ đề.");});apply.IsEnabled=bank.Count>0;
         page.Children.Add(Card(Stack(Text("Cấu hình thi mặc định",21),Text("Dùng cho bộ đề mới nhập. File .quiz ưu tiên cấu hình đã lưu trong file.",13),Field("Số câu mặc định",count),Field("Thời gian mặc định (phút)",minutes),shuffle,options,apply)));
         page.Children.Add(preferencesStatus);page.Children.Add(Text("Thiết lập bài thi cũng được nhớ làm mặc định. Nội dung câu hỏi cần nhấn Lưu bộ đề để lưu thành .quiz.",13));
-        page.Children.Add(Text("QuizDesk 5.11.0 · "+(OperatingSystem.IsIOS()?"iOS":OperatingSystem.IsAndroid()?"Android":MobilePlatform.DesktopHost?(OperatingSystem.IsMacOS()?"macOS":"Windows"):"Preview"),12));
+        page.Children.Add(Text("QuizDesk "+AppVersion.Display+" · "+(OperatingSystem.IsIOS()?"iOS":OperatingSystem.IsAndroid()?"Android":MobilePlatform.DesktopHost?(OperatingSystem.IsMacOS()?"macOS":"Windows"):"Preview"),12));
     }
     void ExamSettings() {
         setup.Count=Math.Clamp(setup.Count,1,Math.Max(1,bank.Count));Heading("Bài kiểm tra của bạn","Chọn nhịp học phù hợp",$"{setup.Included.Count} câu được chọn từ bộ “{title}”.");

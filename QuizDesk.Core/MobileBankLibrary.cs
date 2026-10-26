@@ -72,24 +72,41 @@ public sealed class MobileBankLibrary {
         if(Contains(id))return Load(id);
         return Create(content,sourceName,true,id,false);
     }
-    public LibraryBank Merge(IEnumerable<Guid> ids,string title,bool shuffle,AppPreferences defaults=null,Random random=null) {
+    public LibraryBank Merge(IEnumerable<Guid> ids,string title,bool shuffle,AppPreferences defaults=null,Random random=null,IReadOnlyDictionary<Guid,int> counts=null) {
         if(ids==null)throw new InvalidDataException("Hãy chọn ít nhất 2 bộ đề.");
         var selected=ids.Distinct().ToArray();
-        InputSafety.Require(selected.Length>=2&&selected.Length<=InputSafety.MaxQuestions,"Hãy chọn ít nhất 2 bộ đề khác nhau.");
+        InputSafety.Require(selected.Length>=2,"Hãy chọn ít nhất 2 bộ đề khác nhau.");
         title=title?.Trim();InputSafety.Require(!string.IsNullOrWhiteSpace(title)&&title.Length<=200,"Tên bộ đề cần từ 1 đến 200 ký tự.");
-        var sources=selected.Select(Load).ToArray();
-        return MergeSources(sources,title,shuffle,defaults,random,false);
+        IEnumerable<LibraryBank> sources=selected.Select(Load);
+        if(counts!=null){
+            InputSafety.Require(counts.Keys.All(selected.Contains),"Số lượng trích có bộ đề không được chọn.");
+            random??=Random.Shared;long sampledCount=0,sampledCharacters=0;var sampledMedia=new List<QuestionMedia>();
+            sources=sources.Select(source=>{
+                InputSafety.Require(!source.DeletedAt.HasValue,"Không thể trích câu từ bộ đề đã xóa.");
+                int take=counts.TryGetValue(source.Id,out var value)?value:source.Content.Bank.Count;
+                InputSafety.Require(take>=0&&take<=source.Content.Bank.Count,"Số câu trích phải từ 0 đến số câu hiện có của từng bộ.");
+                sampledCount+=take;InputSafety.Require(sampledCount<=InputSafety.MaxQuestions,"Tổng số câu trích tối đa 5.000.");
+                var questions=source.Content.Bank.ToList();
+                if(take<questions.Count)for(int i=questions.Count-1;i>0;i--){int j=random.Next(i+1);(questions[i],questions[j])=(questions[j],questions[i]);}
+                var chosen=questions.Take(take).ToList();sampledMedia.AddRange(chosen.SelectMany(q=>q.Media));MediaFiles.Check(sampledMedia);
+                sampledCharacters+=chosen.Sum(q=>(long)q.Text.Length+q.Note.Length+q.Options.Sum(o=>(long)o.Value.Length)+(q.OriginalAnswer?.Length??0)+(q.AnswerSource?.Length??0)+(q.ImportWarnings?.Sum(w=>(long)w.Length)??0));
+                InputSafety.Require(sampledCharacters<=InputSafety.MaxTextCharacters,"Nội dung bộ đề trích quá lớn.");
+                return new LibraryBank {Id=source.Id,SourceName=source.SourceName,Content=new WorkspaceBank {Title=source.Content.Title,Bank=chosen}};
+            }).Where(source=>source.Content.Bank.Count>0).ToArray();
+            InputSafety.Require(sources.Any(),"Hãy chọn ít nhất một câu để tạo đề.");
+        }
+        return MergeSources(sources.ToArray(),title,shuffle,defaults,random,false,counts!=null);
     }
     // Parse every file independently before this call: answer tables are scoped to their source.
     public LibraryBank ImportCombined(IEnumerable<ImportedBank> imports,string title,bool shuffle,AppPreferences defaults=null,Random random=null) {
         var files=imports?.ToArray()??throw new InvalidDataException("Chưa chọn file đề.");
-        InputSafety.Require(files.Length>=2&&files.Length<=20,"Chọn từ 2 đến 20 file để gộp.");
+        InputSafety.Require(files.Length>=2,"Chọn ít nhất 2 file để gộp.");
         title=title?.Trim();InputSafety.Require(!string.IsNullOrWhiteSpace(title)&&title.Length<=200,"Tên bộ đề cần từ 1 đến 200 ký tự.");
         foreach(var file in files){InputSafety.Require(file!=null&&file.Content!=null,"File đề không hợp lệ.");Validate(file.Content);}
         var sources=files.Select(f=>new LibraryBank {Content=f.Content,SourceName=Path.GetFileName(f.SourceName??"")}).ToArray();
         return MergeSources(sources,title,shuffle,defaults,random,true);
     }
-    LibraryBank MergeSources(LibraryBank[] sources,string title,bool shuffle,AppPreferences defaults,Random random,bool imported) {
+    LibraryBank MergeSources(LibraryBank[] sources,string title,bool shuffle,AppPreferences defaults,Random random,bool imported,bool fullExam=false) {
         MediaFiles.Check(sources.SelectMany(b=>b.Content.Bank).SelectMany(q=>q.Media));
         InputSafety.Require(sources.All(b=>!b.DeletedAt.HasValue&&b.Content.Bank.Count>0),"Chỉ gộp các bộ đề còn tồn tại và có câu hỏi.");
         InputSafety.Require(sources.Sum(b=>(long)b.Content.Bank.Count)<=InputSafety.MaxQuestions,"Bộ đề gộp tối đa 5.000 câu. Hãy chọn ít bộ đề hơn.");
@@ -105,7 +122,7 @@ public sealed class MobileBankLibrary {
         var origins=new List<BankFieldChange>();
         for(int i=0;i<pool.Count;i++){pool[i].question.Number=i+1;origins.Add(new(){Field=$"Câu {i+1} · Nguồn",Before=pool[i].origin,After=$"Câu {i+1}"});}
         var questions=pool.Select(p=>p.question).ToList();var setup=(defaults??new AppPreferences()).CreateSetup(questions);
-        setup.ShuffleQuestions=shuffle;setup.ShuffleOptions=false;
+        setup.ShuffleQuestions=shuffle;setup.ShuffleOptions=false;if(fullExam)setup.Count=questions.Count;
         var content=new WorkspaceBank {Title=title,Bank=questions,Setup=setup,HasUnexportedChanges=true};
         var activity=new BankActivity {Kind="merged",Description=$"Gộp {sources.Length} bộ đề · {questions.Count} câu · "+(shuffle?"Trộn thứ tự câu hỏi.":"Giữ thứ tự các bộ nguồn.")+"\n"+string.Join("\n",sources.Select(b=>$"• {OriginTitle(b)}: {b.Content.Bank.Count} câu")),Changes=origins};
         return Create(content,imported?"Nhập nhiều file":"",imported,Guid.NewGuid(),false,activity);

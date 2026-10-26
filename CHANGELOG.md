@@ -1,21 +1,26 @@
-# QuizDesk 5.12.0 — đang chuẩn bị phát hành (26/10/2026)
+# QuizDesk 5.13.0 — 26/10/2026
 
-- Sửa thứ tự tham số lipo khi kiểm tra binary iPhone; tránh dừng trước bước
-  đóng gói IPA chưa ký dù dotnet publish đã chạy xong.
-
-- Sửa checkout khi chạy release thủ công: dùng nhánh/tag đang chọn, tự lấy tag
-  từ version source nếu để trống, tạo tag mới tại commit đã build khi publish.
-  Chặn tag trỏ sai commit; đồng bộ version 5.12.0, Android build 60101 và iOS build 16.
-
-- Thêm GitHub Actions build APK đã ký và bộ cài EXE Windows theo tag; tự đưa
-  file/SHA-256 vào cùng Release, kiểm tra version và giữ nguyên các asset đã phát hành.
-
-- Nhập tối đa 20 file mỗi lượt; chọn mỗi file thành một bộ đề hoặc gộp thành
-  một bộ tổng hợp, có thể trộn thứ tự câu hỏi.
-- Đọc câu hỏi và bảng đáp án theo từng file trước khi gộp. Đánh số lại từ 1,
-  giữ đáp án, giải thích, media và cảnh báo; nhật ký ghi file/số câu gốc.
-- Báo kết quả từng file. Chế độ tách vẫn lưu các file hợp lệ khi file khác lỗi;
-  chế độ gộp chỉ tạo bộ tổng hợp khi toàn bộ file hợp lệ, tối đa 5.000 câu.
+- Xuất DOCX, XLSX, JSON, CSV, TSV, TXT và HTML bên cạnh .quiz; có thể kèm hoặc
+  bỏ đáp án/giải thích. DOCX/XLSX tạo trực tiếp trên PC/mobile, không cần Office,
+  LibreOffice hay server. DOCX giữ ảnh PNG/JPEG/GIF; XLSX xuất bảng chữ có lọc,
+  cố định tiêu đề và ô dạng văn bản. Không thêm định dạng cũ DOC/XLS.
+- JSON/HTML giữ media; DOCX ghi chú tên video/WebP không nhúng. CSV/TSV/TXT/XLSX
+  chỉ xuất chữ. CSV/TSV bảo vệ ô công thức; XLSX dùng ô văn bản và báo lỗi khi ô
+  vượt 32.767 ký tự, không cắt mất dữ liệu.
+- Nhập nhiều file: mỗi file một bộ hoặc gộp thành một bộ; đọc câu hỏi và bảng
+  đáp án riêng từng file trước khi gộp, đánh số lại và giữ ánh xạ nguồn.
+- Bỏ giới hạn 20 file/lượt; thêm Ctrl+A/⌘A chọn tất cả bộ đề trong thư viện.
+  Bộ tổng hợp vẫn giữ giới hạn 5.000 câu và dung lượng xử lý hiện có.
+- Chọn số câu ngẫu nhiên từ từng bộ để tạo đề tổng hợp/thi thử, không lặp trong
+  bộ nguồn; trộn thứ tự chung, giữ đúng đáp án/giải thích/media và không sửa bộ gốc.
+- Thanh tiêu đề và Cài đặt lấy version từ assembly build thay vì ghi cứng.
+  Đồng bộ 5.13.0, Android build 60102 và iOS build 17. Đóng gói macOS đọc version
+  từ project Desktop.
+- GitHub Actions build APK đã ký và EXE theo tag, đính kèm file/SHA-256 vào cùng
+  Release. Chạy thủ công có thể để trống tag; tạo tag mới ở đúng commit đã build
+  khi publish. Không di chuyển tag hoặc ghi đè asset đã phát hành.
+- Sửa thứ tự tham số lipo để bước kiểm tra binary iPhone không chặn đóng gói IPA.
+- Thêm kiểm thử xuất Office, xuất dữ liệu, trích câu theo bộ và phát hành.
 
 # QuizDesk 5.11.0 — 25/10/2026
 

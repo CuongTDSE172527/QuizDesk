@@ -25,7 +25,7 @@ internal static class Program {
 }
 public sealed class DesktopApp : App {
     protected override Window CreateDesktopWindow() {
-        var window=new Window {Title="QuizDesk 5.11.0",Width=1280,Height=860,MinWidth=720,MinHeight=600};
+        var window=new Window {Title="QuizDesk "+AppVersion.Display,Width=1280,Height=860,MinWidth=720,MinHeight=600};
         try{window.Icon=new WindowIcon(Path.Combine(AppContext.BaseDirectory,"QuizDesk.ico"));}catch(IOException){}
         window.Closing+=(_,_)=>CurrentView?.PersistSession();
         window.Deactivated+=(_,_)=>CurrentView?.PersistSession();

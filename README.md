@@ -1,4 +1,4 @@
-# QuizDesk 5.12.0 — Windows, macOS, Android và mã nguồn iOS
+# QuizDesk 5.13.0 — Windows, macOS, Android và mã nguồn iOS
 
 [Tải bản cài / Releases](https://github.com/CuongTDSE172527/QuizDesk/releases/latest) · [Changelog](CHANGELOG.md)
 
@@ -462,7 +462,7 @@ iOS: https://docs.avaloniaui.net/docs/deployment/ios
 
 ## Nhập nhiều file cùng lúc
 
-Chọn **Nhập file đề**, chọn từ 2 đến 20 file trong trình chọn file của hệ điều
+Chọn **Nhập file đề**, chọn nhiều file trong trình chọn file của hệ điều
 hành, rồi chọn **Tách riêng** (mỗi file một bộ đề) hoặc **Gộp tất cả**. Khi gộp,
 đặt tên bộ tổng hợp và tùy chọn trộn thứ tự câu hỏi. Nhập một file vẫn hoạt động
 như trước. Tính năng dùng chung cho giao diện PC và mobile; cách chọn nhiều
@@ -485,3 +485,52 @@ file đề khác; mỗi file được chọn cần là một bộ đề độc l
 Có hai GitHub Actions riêng để build APK Android và bộ cài EXE Windows, rồi
 đính kèm vào cùng GitHub Release theo tag phiên bản. Xem [cách cấu hình khóa ký
 và chạy workflow](.github/RELEASES.md).
+
+## Xuất nhiều định dạng và trích đề thi thử
+
+Trong bộ đề đang mở, chọn **Xuất bộ đề** → `.quiz`, DOCX, XLSX, JSON, CSV, TSV, TXT hoặc HTML.
+`.quiz` giữ cấu hình thi và media đầy đủ. JSON giữ câu hỏi, đáp án, giải thích,
+media và thông tin rà soát; HTML nhúng media để xem/in offline. CSV/TSV/TXT chỉ
+xuất chữ. Với định dạng ngoài `.quiz`, có thể bỏ đáp án và giải thích. CSV/TSV
+thêm dấu nháy đơn trước ô có nguy cơ bị Excel hiểu thành công thức; nhập lại
+các ô này sẽ giữ dấu nháy đơn. Các định dạng ngoài `.quiz` không giữ cấu hình thi.
+
+Trong **Bộ đề**, chọn các bộ nguồn → **Trích câu / gộp**, nhập số câu lấy ở từng
+bộ (0 để bỏ qua), bật trộn thứ tự rồi tạo. Ví dụ 10 câu từ bộ A và 15 câu từ bộ B
+sẽ tạo đề 25 câu. Mỗi bộ được bốc ngẫu nhiên không lặp, sau đó mới trộn chung và
+đánh số lại. Đáp án/giải thích/media giữ theo câu; nhật ký giữ số câu và bộ nguồn.
+Mặc định mở màn thiết lập thi thử và dùng đủ số câu vừa trích. Đây là một bộ đề
+mới lưu trong thư viện; tạo lại bộ tổng hợp để bốc lượt câu khác. Các lần thi
+trên cùng bộ đã tạo chỉ trộn lại chính các câu đó.
+
+Đã bỏ giới hạn 20 file mỗi lượt. Nhập tách xử lý từng file lần lượt; nhập gộp
+vẫn giữ giới hạn 5.000 câu và dung lượng media/văn bản của một bộ đề. Chế độ
+trích cho phép chọn ít câu từ các bộ nguồn có tổng số câu lớn hơn 5.000.
+
+**Ctrl+A** (Windows) hoặc **⌘A** (macOS) trong thư viện chọn toàn bộ bộ đề,
+không chiếm phím khi đang sửa ô văn bản. Trong hộp chọn file hệ thống, dùng
+Ctrl+A/⌘A nếu trình chọn file đó hỗ trợ; cách chọn nhiều file trên mobile tùy
+trình quản lý file của hệ điều hành.
+
+Version ở thanh tiêu đề và màn Cài đặt đọc từ assembly UI đã build, không gắn
+cứng số phiên bản trong giao diện. Cần cài/chạy binary mới để thấy thay đổi.
+
+## Xuất Office trong 5.13.0
+
+Trong **Xuất bộ đề**, chọn **Word (.docx)** hoặc **Excel (.xlsx)**. Có thể kèm
+hoặc bỏ đáp án/giải thích. Hai định dạng được tạo trực tiếp bằng Office Open XML
+trên PC/mobile, không cần cài Microsoft Office, LibreOffice, không gọi server.
+
+- DOCX: tài liệu A4 với tiêu đề, số câu, lựa chọn và giải thích. Giữ ảnh PNG/JPEG/GIF
+  ở vị trí câu hỏi, lựa chọn và ghi chú. GIF có thể chỉ hiển thị ảnh tĩnh trong Word.
+  Video/WebP được ghi tên trong tài liệu, không nhúng; dùng .quiz/HTML để giữ đủ media.
+- XLSX: sheet `Cau hoi` có cột number, text, A–H, answer, note; cố định dòng tiêu đề,
+  lọc dữ liệu, xuống dòng và độ rộng cột. Chỉ xuất chữ; không nhúng ảnh/video.
+  Giá trị bắt đầu bằng `=` vẫn là chữ, không tạo công thức. Nếu ô vượt 32.767 ký tự,
+  app báo lỗi và không cắt bớt nội dung; dùng DOCX/JSON/.quiz cho bộ đề đó.
+- Không thêm định dạng cũ XLS/DOC trong đợt này. .quiz vẫn là bản sao lưu đầy đủ
+  nhất cho media, cấu hình thi và thông tin cần rà soát của QuizDesk.
+
+Version hiển thị là **5.13.0**, Android versionCode **60102**, iOS build **17**.
+Chạy Actions với version/tag `v5.13.0`, hoặc để trống tag ở lượt chạy thủ công sau
+khi commit/push source. Bộ đóng gói macOS tự đọc version từ project Desktop.

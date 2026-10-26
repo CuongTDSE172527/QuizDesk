@@ -7,6 +7,8 @@ import struct
 import subprocess
 import sys
 import tarfile
+import re
+import xml.etree.ElementTree as ET
 from pathlib import Path
 
 parser = argparse.ArgumentParser()
@@ -15,6 +17,9 @@ parser.add_argument('output', type=Path, help='A new directory; existing output 
 parser.add_argument('--arch', choices=['arm64', 'x64'], required=True)
 args = parser.parse_args()
 source, output = args.publish.resolve(), args.output.resolve()
+version = ET.parse(Path(__file__).resolve().parent / 'QuizDesk.Desktop' / 'QuizDesk.Desktop.csproj').findtext('.//Version')
+if not version or not re.fullmatch(r'[0-9]+\.[0-9]+\.[0-9]+', version):
+    raise SystemExit('Desktop project must declare a three-component release version')
 host = source / 'QuizDesk'
 header = host.read_bytes()[:8]
 expected = {'arm64': 0x0100000C, 'x64': 0x01000007}[args.arch]
@@ -40,15 +45,15 @@ for item in source.iterdir():
 assets = Path(__file__).resolve().parent / 'Assets'
 for name in ('Samples', 'Licenses'):
     if not (resources / name).exists():
-        shutil.copytree(assets / name, resources / name)
+        shutil.copytree(Path(__file__).resolve().parent / ('TestAssets/Samples' if name == 'Samples' else 'QuizDesk.Mobile/Assets/Licenses'), resources / name)
 icon = assets / 'QuizDesk.icns'
 if icon.exists():
     shutil.copy2(icon, resources / icon.name)
 metadata = {
     'CFBundleName': 'QuizDesk', 'CFBundleDisplayName': 'QuizDesk',
     'CFBundleIdentifier': 'com.quizdesk.desktop', 'CFBundleExecutable': 'QuizDesk',
-    'CFBundlePackageType': 'APPL', 'CFBundleVersion': '5.11.0',
-    'CFBundleShortVersionString': '5.11.0', 'LSMinimumSystemVersion': '14.0',
+    'CFBundlePackageType': 'APPL', 'CFBundleVersion': version,
+    'CFBundleShortVersionString': version, 'LSMinimumSystemVersion': '14.0',
     'NSHighResolutionCapable': True,
     'LSApplicationCategoryType': 'public.app-category.education',
     'CFBundleIconFile': 'QuizDesk.icns',
@@ -66,7 +71,7 @@ if sys.platform == 'darwin':
 readme = Path(__file__).resolve().parent / 'MACOS.txt'
 shutil.copy2(readme, output / 'MACOS.txt')
 shutil.copy2(Path(__file__).resolve().parent / 'prepare-local-macos.sh', output / 'prepare-local-macos.sh')
-archive = output.parent / f'QuizDesk-5.11.0-macos-{args.arch}.tar.gz'
+archive = output.parent / f'QuizDesk-{version}-macos-{args.arch}.tar.gz'
 def permissions(info):
     info.uid = info.gid = 0
     info.uname = info.gname = ''

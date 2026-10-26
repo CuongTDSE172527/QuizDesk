@@ -38,6 +38,10 @@ public static class Importers {
                 if(item.TryGetProperty("media",out var media))q.Media=JsonSerializer.Deserialize<List<QuestionMedia>>(media.GetRawText(),new JsonSerializerOptions {PropertyNameCaseInsensitive=true})??throw new InvalidDataException("Media JSON không hợp lệ.");
                 foreach(var o in item.GetProperty("options").EnumerateObject())QuestionReview.AddChoice(q,o.Name.ToUpperInvariant(),o.Value.GetString()??"");
                 QuestionReview.ApplyAnswerClaims(q,item.EnumerateObject().Where(p=>p.Name=="answer").Select(p=>p.Value.GetString()),"Dữ liệu JSON");
+                if(item.TryGetProperty("originalAnswer",out var original))q.OriginalAnswer=original.GetString()??"";
+                if(item.TryGetProperty("answerSource",out var source))q.AnswerSource=source.GetString()??"";
+                if(item.TryGetProperty("needsReview",out var review))q.NeedsReview|=review.GetBoolean();
+                if(item.TryGetProperty("importWarnings",out var warnings))foreach(var warning in warnings.EnumerateArray())q.ImportWarnings.Add(warning.GetString()??"");
                 questions.Add(q);
             }
         } else if(ext==".xlsx") questions=ReadSpreadsheet(path);

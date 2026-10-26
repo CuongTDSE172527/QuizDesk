@@ -4,7 +4,7 @@
     <SupportedOSPlatformVersion>15.0</SupportedOSPlatformVersion>
     <ImplicitUsings>enable</ImplicitUsings><Nullable>disable</Nullable>
     <ApplicationId>com.quizdesk.mobile</ApplicationId><ApplicationTitle>QuizDesk</ApplicationTitle>
-    <ApplicationVersion>16</ApplicationVersion><ApplicationDisplayVersion>5.12.0</ApplicationDisplayVersion>
+    <ApplicationVersion>17</ApplicationVersion><ApplicationDisplayVersion>5.13.0</ApplicationDisplayVersion>
     <RestorePackagesPath>../.packages</RestorePackagesPath>
     <JsonSerializerIsReflectionEnabledByDefault>true</JsonSerializerIsReflectionEnabledByDefault>
     <AppIcon>AppIcon</AppIcon>
