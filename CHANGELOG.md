@@ -1,3 +1,10 @@
+# QuizDesk 5.16.3 — 27/10/2026
+
+- Không cảnh báo rà soát khi Word có một đáp án được tô màu/highlight/in đậm rõ ràng.
+- Cảnh báo khi thiếu đáp án, nhiều lựa chọn cùng được đánh dấu hoặc nguồn đáp án mâu thuẫn.
+- Ghi chú trong bảng đáp án không tự tạo cảnh báo rà soát.
+- Đồng bộ version 5.16.3; Android versionCode 60108, iOS build 23.
+
 # QuizDesk 5.16.2 — 27/10/2026
 
 - Nhận diện đáp án tô màu chữ trong Word, bao gồm màu chữ kế thừa từ style.

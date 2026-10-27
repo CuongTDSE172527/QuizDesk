@@ -15,7 +15,7 @@ partial class Tests {
         }
         var bank=Importers.Load(path,out _);
         Check(bank.Count==expected.Count,"Supplied document question count preserved");
-        foreach(var q in bank.Where(q=>expected[q.Number].Count==1))Check(q.Answer==expected[q.Number].Single(),"Supplied red answer: "+q.Number);
+        foreach(var q in bank.Where(q=>expected[q.Number].Count==1))Check(q.Answer==expected[q.Number].Single()&&!QuestionReview.RequiresReview(q),"Supplied red answer: "+q.Number);
         Console.WriteLine($"Imported {bank.Count} questions; {bank.Count(q=>q.Answer!="")} answers recognized; {expected.Count(e=>e.Value.Count==1)} unique red answers.");
     }
     static void RecognitionChecks(string folder,string mon15){
@@ -32,9 +32,24 @@ partial class Tests {
             }return Importers.Load(path,out _).Single();
         }
         XElement[] Base(XElement a,XElement b,params XElement[] tail)=>new[]{P("Câu 1. Chọn?"),a,b}.Concat(tail).ToArray();
+        var singleBold=Word(Base(P("A. Trà"),P("B. Cà phê",new XElement(w+"b"))));
+        Check(singleBold.Answer=="B"&&!QuestionReview.RequiresReview(singleBold),"Unique bold answer needs no review");
+        Check(QuestionReview.RequiresReview(Word(Base(P("A. Trà"),P("B. Cà phê")))),"Missing answer requires review");
+        var agreeing=Word(Base(P("A. Trà"),P("B. Cà phê",Color("EE0000")),P("Đáp án: B")));
+        Check(!QuestionReview.RequiresReview(agreeing),"Matching color and explicit answer need no review");
+        var disagreeing=Word(Base(P("A. Trà",Color("EE0000")),P("B. Cà phê"),P("Đáp án: B")));
+        Check(disagreeing.Answer=="B"&&QuestionReview.RequiresReview(disagreeing)&&QuestionReview.ScoringAnswer(disagreeing)=="","Conflicting sources require review before scoring");
+        var mixed=Word(Base(P("A. Trà",new XElement(w+"b")),P("B. Cà phê",Color("EE0000"))));
+        Check(mixed.Answer==""&&QuestionReview.RequiresReview(mixed),"Different bold and colored choices are ambiguous");
+        var multiple=Word(Base(P("A. Trà",Color("EE0000")),P("B. Cà phê",Color("EE0000")),P("Đáp án: B")));
+        Check(QuestionReview.RequiresReview(multiple),"Multiple marked choices still require review with explicit key");
+        var agreeingReview=Word(Base(P("A. Trà"),P("B. Cà phê"),P("Đáp án gốc: B"),P("Đáp án: B")));
+        Check(!QuestionReview.RequiresReview(agreeingReview),"Matching original and inline keys need no review");
+        var conflictingReview=Word(Base(P("A. Trà"),P("B. Cà phê"),P("Đáp án gốc: A"),P("Đáp án: B")));
+        Check(QuestionReview.RequiresReview(conflictingReview),"Conflicting original and inline keys require review");
         foreach(string color in new[]{"EE0000","ff0000","0070C0","00B050"}){
             var q=Word(Base(P("A. Trà"),P("b. Cà phê",Color(color))));
-            Check(q.Answer=="B"&&q.NeedsReview&&q.AnswerSource.Contains("màu chữ"),"Font color recognized: "+color);
+            Check(q.Answer=="B"&&!QuestionReview.RequiresReview(q)&&q.AnswerSource.Contains("màu chữ"),"Font color recognized: "+color);
         }
         foreach(string color in new[]{"auto","000000","FFFFFF","808080","invalid"})
             Check(Word(Base(P("A. Trà"),P("B. Cà phê",Color(color)))).Answer=="","Ordinary font color ignored: "+color);
@@ -50,7 +65,7 @@ partial class Tests {
         Check(Word(Base(P("A. Trà"),P("B. Cà phê",new XElement(w+"color",new XAttribute(w+"themeColor","accent1"))))).Answer=="B","Accent theme font color recognized");
         Check(Word(Base(P("A. Trà"),P("B. Cà phê",new XElement(w+"color",new XAttribute(w+"themeColor","text1"),new XAttribute(w+"val","EE0000"))))).Answer=="","Normal theme text overrides cached RGB");
         foreach(string color in new[]{"yellow","cyan","magenta","red","blue","green","darkBlue","darkCyan","darkGreen","darkMagenta","darkRed","darkYellow","darkGray","lightGray","black"}){
-            var q=Word(Base(P("A. Trà"),P("B. Cà phê",Highlight(color))));Check(q.Answer=="B"&&q.NeedsReview&&q.AnswerSource.Contains("highlight"),"Unique highlight: "+color);
+            var q=Word(Base(P("A. Trà"),P("B. Cà phê",Highlight(color))));Check(q.Answer=="B"&&!QuestionReview.RequiresReview(q)&&q.AnswerSource.Contains("highlight"),"Unique highlight: "+color);
         }
         Check(Word(Base(P("A. Trà"),P("B. Cà phê",Highlight("none")))).Answer=="","No-color marker is not an answer");
         Check(Word(Base(P("A. Trà",Highlight("cyan")),P("B. Cà phê",Highlight("yellow")))).Answer=="","Different highlight colors on multiple choices stay ambiguous");

@@ -163,16 +163,27 @@ public static class WordReader {
                 // Repeated table rows, however, must be resolved by the user.
                 QuestionReview.ApplyAnswerClaims(q,rows.Select(r=>r.answer),rows[0].source);
                 q.Note=string.Join("\n",new[]{q.Note}.Concat(rows.Select(r=>r.note)).Append(q.Answer==""?"Kết luận trong bảng: "+string.Join("; ",rows.Select(r=>r.answer)):"").Where(s=>s!=""));
-                if(rows.Any(r=>r.note!="")||q.Answer=="")q.NeedsReview=true;
+                if(q.Answer=="")q.NeedsReview=true;
             } else if(reviewed[q].Apply(q)) {
-                if(inline[q].Count>0)QuestionReview.Warn(q,"Có thêm dòng đáp án ngoài đáp án gốc/rà soát. Hãy kiểm tra lại.");
+                // Additional inline claims are compared with this key below.
             } else if(inline[q].Count>0) {
                 QuestionReview.ApplyAnswerClaims(q,inline[q],"Dòng đáp án trong câu");
             } else {
-                var candidates=highlighted[q.Number].Count>0?highlighted[q.Number]:bold[q.Number];
-                if(candidates.Count==1) {q.Answer=candidates.Single();q.AnswerSource=highlighted[q.Number].Count>0?"Lựa chọn được highlight/tô nền/tô màu chữ":"Lựa chọn in đậm";q.NeedsReview=true;}
+                var candidates=highlighted[q.Number].Union(bold[q.Number]).ToHashSet();
+                if(candidates.Count==1) {q.Answer=candidates.Single();q.AnswerSource=highlighted[q.Number].Count>0?"Lựa chọn được highlight/tô nền/tô màu chữ":"Lựa chọn in đậm";}
                 else {q.AnswerSource=candidates.Count>1?"Nhiều lựa chọn cùng định dạng — cần xác nhận":"Chưa tìm thấy đáp án";q.NeedsReview=true;}
             }
+            var marked=highlighted[q.Number].Union(bold[q.Number]).ToHashSet();
+            if(marked.Count>1)QuestionReview.Warn(q,"Nhiều lựa chọn cùng được đánh dấu: "+string.Join(", ",marked.OrderBy(x=>x))+". Hãy xác nhận đáp án đúng.");
+            else if(marked.Count==1&&q.Answer!=""&&!marked.Contains(q.Answer))
+                QuestionReview.Warn(q,"Đáp án được đánh dấu khác với đáp án ghi trong tài liệu. Hãy xác nhận đáp án đúng.");
+            // Compare additional explicit sources without overriding the selected key.
+            if(tableKeys.ContainsKey(q.Number)||reviewed[q].Original.Count>0||reviewed[q].Revised.Count>0)
+                foreach(string claim in inline[q]){
+                    var other=new Question {Options=q.Options};
+                    QuestionReview.ApplyAnswerClaims(other,new[]{claim},"Đối chiếu");
+                    if(other.Answer==""||other.Answer!=q.Answer)QuestionReview.Warn(q,"Các nguồn đáp án trong tài liệu mâu thuẫn hoặc không xác định được. Hãy xác nhận đáp án đúng.");
+                }
         }
         // Text-only documents may use a compact answer section; retain the established parser for those.
         if(tableKeys.Count==0&&result.Any(q=>q.Options.Count<2)&&result.All(q=>q.Media.Count==0))return Reader.Parse(Reader.Read(path));
