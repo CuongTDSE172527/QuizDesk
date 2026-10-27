@@ -1,4 +1,4 @@
-# QuizDesk 5.16.5 — Windows, macOS, Android và mã nguồn iOS
+# QuizDesk 5.16.6 — Windows, macOS, Android và mã nguồn iOS
 
 Word tổng hợp nhiều môn: khi nhập DOCX (hoặc DOC được chuyển đổi), ứng dụng bỏ qua
 mục lục Word và tạo một bộ đề cho mỗi tiêu đề môn/phần. Dùng Heading 1 cho tiêu đề môn
@@ -545,8 +545,8 @@ trên PC/mobile, không cần cài Microsoft Office, LibreOffice, không gọi s
 - Không thêm định dạng cũ XLS/DOC trong đợt này. .quiz vẫn là bản sao lưu đầy đủ
   nhất cho media, cấu hình thi và thông tin cần rà soát của QuizDesk.
 
-Version hiển thị là **5.16.5**, Android versionCode **60110**, iOS build **25**.
-Chạy Actions với version/tag `v5.16.5`, hoặc để trống tag ở lượt chạy thủ công sau
+Version hiển thị là **5.16.6**, Android versionCode **60111**, iOS build **26**.
+Chạy Actions với version/tag `v5.16.6`, hoặc để trống tag ở lượt chạy thủ công sau
 khi commit/push source. Bộ đóng gói macOS tự đọc version từ project Desktop.
 
 ## Tự động build khi push
@@ -565,11 +565,15 @@ Từ 5.14.0, ngày giờ thiết bị hiển thị cạnh nút hướng dẫn, t
 địa phương; màn hình nhỏ hiển thị ngày và giờ hai dòng. Đồng hồ làm mới ngay
 khi quay lại ứng dụng và dùng timer riêng với đồng hồ đếm ngược bài thi.
 
-### Kính mờ Aero trên Windows
+### Phong cách kính đa nền tảng
 
-Desktop Windows mặc định bật hiệu ứng kính mờ cho nền cửa sổ và thanh điều hướng,
-kèm ánh sáng nhẹ trên thanh đầu. Khung nội dung có lớp phủ để giữ độ tương phản.
-Vào **Cài đặt → Kính mờ Aero** để bật/tắt; lựa chọn tự lưu cho lần mở app tiếp theo.
-Hiệu ứng theo chế độ sáng/tối. Nếu Windows không cung cấp AcrylicBlur/Blur,
-app tự dùng nền đặc. Không giảm opacity toàn cửa sổ/chữ và không thêm blur cho từng thẻ.
-Mobile và macOS tiếp tục dùng bảng màu nền đặc.
+Windows, macOS, Android và iOS dùng chung bảng màu kính sáng/tối với các khung
+nội dung, thanh điều hướng bán trong suốt và ánh sáng nhẹ phủ kín vùng header.
+Vào **Cài đặt → Phong cách kính** để bật/tắt; lựa chọn tự lưu và kế thừa cài đặt Aero.
+
+Windows yêu cầu AcrylicBlur/Blur. macOS yêu cầu Blur khi nền tảng hỗ trợ.
+Mobile và desktop không có native blur dùng nền màu mềm, đặc phía sau các lớp
+kính trong app. Đây là phong cách kính trong giao diện, không phải native vibrancy
+hay UIVisualEffectView trên Apple, và không nhìn xuyên ra wallpaper trên mobile.
+Tắt hiệu ứng để dùng bảng màu nền đặc. Không giảm opacity của chữ, thêm blur theo
+mỗi thẻ hoặc chạy animation nền liên tục. Khoảng an toàn cho tai thỏ vẫn được giữ.

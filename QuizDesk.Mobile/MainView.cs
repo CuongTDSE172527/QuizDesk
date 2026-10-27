@@ -77,21 +77,23 @@ public partial class MainView : UserControl {
         if(restoredExam!=null&&historyStore.Load(out _).Any(a=>a.Id==restoredExam.Id)){try{workspace.Complete(restoredExam.Id);}catch(IOException){}restoredExam=null;}
         ApplyTheme();Tone(this,BackgroundProperty,"Surface");Tone(this,ForegroundProperty,"OnSurface");
         shell.RowDefinitions=new RowDefinitions("Auto,*,Auto");
-        var header=appBar=new Grid {ColumnDefinitions=new ColumnDefinitions("*,Auto,Auto,Auto"),Margin=new Thickness(20,4,12,4),MinHeight=64};
+        var headerSurface=appBar=new Grid {MinHeight=72};
+        var header=new Grid {ColumnDefinitions=new ColumnDefinitions("*,Auto,Auto,Auto"),Margin=new Thickness(20,4,12,4),MinHeight=64};
+        headerSurface.Children.Add(header);
         var brand=brandName=Text("QuizDesk",22);brand.FontWeight=FontWeight.SemiBold;
         var mark=new Image {Source=BrandLogo.Value,Width=36,Height=36};
         var identity=new StackPanel {Orientation=Orientation.Horizontal,Spacing=10,VerticalAlignment=VerticalAlignment.Center,Children={mark,brand}};header.Children.Add(identity);
         Grid.SetColumn(headerDateTime,1);ToolTip.SetTip(headerDateTime,"Ngày giờ thiết bị · định dạng 24 giờ");header.Children.Add(headerDateTime);UpdateHeaderDateTime();
         var help=IconButton("Trợ giúp","help",()=>Navigate("help"));Grid.SetColumn(help,2);header.Children.Add(help);navButtons["help"]=help;
         var settings=IconButton("Cài đặt","preferences",()=>Navigate("preferences"));Grid.SetColumn(settings,3);header.Children.Add(settings);navButtons["preferences"]=settings;
-        shell.Children.Add(header);
+        shell.Children.Add(headerSurface);
         var container=contentContainer=new Grid {RowDefinitions=new RowDefinitions("Auto,*")};notice.Child=noticeText;container.Children.Add(notice);
         pageScroll=new ScrollViewer {Content=page,HorizontalScrollBarVisibility=ScrollBarVisibility.Disabled};Grid.SetRow(pageScroll,1);container.Children.Add(pageScroll);Grid.SetRow(container,1);shell.Children.Add(container);
         var bottom=navigationGrid=new Grid {ColumnDefinitions=new ColumnDefinitions("*,*,*,*"),ColumnSpacing=0};
         var navs=new[]{("home","Trang chủ"),("bank","Bộ đề"),("setup","Học & thi"),("history","Lịch sử")};
         for(int i=0;i<navs.Length;i++){var (key,label)=navs[i];var button=NavButton(key,label);Grid.SetColumn(button,i);bottom.Children.Add(button);}
         Tone(navigation,Panel.BackgroundProperty,"Container");navigation.Children.Add(bottom);Grid.SetRow(navigation,2);navigation.Margin=default;shell.Children.Add(navigation);
-        outer.Children.Add(shell);outer.Children.Add(modal);Content=outer;TopLevel.SetAutoSafeAreaPadding(this,true);
+        outer.Children.Add(glassBackdrop);outer.Children.Add(shell);outer.Children.Add(modal);Content=outer;TopLevel.SetAutoSafeAreaPadding(this,true);
         page.MaxWidth=1040;SizeChanged+=(_,_)=>AdaptLayout();
         timer.Tick+=(_,_)=>Tick();
         headerDateTimeTimer.Tick+=(_,_)=>UpdateHeaderDateTime();
@@ -277,11 +279,9 @@ public partial class MainView : UserControl {
         var theme=new ComboBox {ItemsSource=new[]{"Sáng","Tối","Theo hệ thống"},SelectedIndex=preferences.Theme=="dark"?1:preferences.Theme=="system"?2:0,HorizontalAlignment=HorizontalAlignment.Stretch};
         theme.SelectionChanged+=(_,_)=>{preferences.Theme=theme.SelectedIndex==1?"dark":theme.SelectedIndex==2?"system":"light";ApplyTheme();SavePreferences();};
         page.Children.Add(Card(Field("Giao diện",theme)));
-        if(MobilePlatform.DesktopHost&&OperatingSystem.IsWindows()){
-            var glass=new ToggleSwitch {Name="AeroGlass",Content="Kính mờ Aero",IsChecked=preferences.AeroGlass};
-            glass.IsCheckedChanged+=(_,_)=>{preferences.AeroGlass=glass.IsChecked==true;UpdateAero();SavePreferences();};
-            page.Children.Add(Card(Stack(glass,Supporting("Kính mờ ở nền cửa sổ và thanh điều hướng. Tự dùng nền đặc nếu hệ thống không hỗ trợ trong suốt."))));
-        }
+        var glass=new ToggleSwitch {Name="AeroGlass",Content="Phong cách kính",IsChecked=preferences.AeroGlass};
+        glass.IsCheckedChanged+=(_,_)=>{preferences.AeroGlass=glass.IsChecked==true;UpdateAero();SavePreferences();};
+        page.Children.Add(Card(Stack(glass,Supporting("Nền và thanh điều hướng bán trong suốt. Desktop dùng blur khi được hỗ trợ; các nền tảng khác dùng lớp kính trên nền màu trong app."))));
         var motion=new ToggleSwitch {Content="Giảm chuyển động",IsChecked=preferences.ReducedMotion};
         motion.IsCheckedChanged+=(_,_)=>{preferences.ReducedMotion=motion.IsChecked==true;StopMotion(page);SavePreferences();};
         page.Children.Add(Card(Stack(motion,Supporting("Chuyển tiếp nhanh 90–140 ms. Bật để hiển thị nội dung tức thì."))));

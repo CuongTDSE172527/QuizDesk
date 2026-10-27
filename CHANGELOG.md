@@ -1,3 +1,14 @@
+# QuizDesk 5.16.6 — 27/10/2026
+
+- Triển khai phong cách kính dùng chung cho Windows, macOS, iOS và Android;
+  bảng màu sáng/tối, khung nội dung và thanh điều hướng bán trong suốt.
+- Desktop yêu cầu blur khi hệ thống hỗ trợ. Mobile và desktop không có native blur
+  dùng lớp kính trên nền màu mềm, đặc trong app; không nhìn xuyên ra ngoài ứng dụng.
+- Công tắc Phong cách kính trong Cài đặt có mặt trên mọi port, dùng lại lựa chọn Aero đã lưu.
+- Sửa ánh sáng thanh đầu bị hụt mép: nền phủ sát hai bên/mép trên của vùng header,
+  giữ khoảng đệm riêng cho logo, đồng hồ và nút; hỗ trợ layout rộng và hẹp.
+- Đồng bộ version 5.16.6; Android versionCode 60111, iOS build 26.
+
 # QuizDesk 5.16.5 — 27/10/2026
 
 - Thêm kính mờ Aero cho desktop Windows: nền và thanh điều hướng bán trong suốt,
