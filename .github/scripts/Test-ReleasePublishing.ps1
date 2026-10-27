@@ -155,3 +155,9 @@ Write-Output 'All 37 release automation checks passed; gh was mocked (no network
     foreach($key in $originalEnvironment.Keys){[Environment]::SetEnvironmentVariable($key,$originalEnvironment[$key])}
     Remove-Variable -Name QDReleaseTestCalls,QDReleaseTestExists,QDReleaseTestAssets,QDReleaseTestDraft,QDReleaseTestCommit,QDReleaseTestTagCommit,QDReleaseTestTagExists,QDReleaseTestAnnotated,QDReleaseTestForbidden,QDReleaseTestTagRace,QDReleaseTestReleaseRace -Scope Global -ErrorAction SilentlyContinue
 }
+
+# GitHub Actions forwards LASTEXITCODE after running a PowerShell step.
+# The final negative test deliberately leaves the mocked gh exit code at 1.
+# Reset it only after all assertions and cleanup succeed, never in finally:
+# an actual test failure must still terminate the step with an error.
+$global:LASTEXITCODE=0
