@@ -33,9 +33,17 @@ function Skip-Publish([string]$Reason){
 $refEndpoint="repos/$env:GITHUB_REPOSITORY/git/ref/tags/$Tag"
 $reference=Get-GitHubJson $refEndpoint
 if($null -eq $reference){
-    & gh api --method POST "repos/$env:GITHUB_REPOSITORY/git/refs" -f "ref=refs/tags/$Tag" -f "sha=$Commit" | Out-Null
-    $reference=Get-GitHubJson $refEndpoint
-    if($null -eq $reference){throw 'Cannot create release tag at the built commit.'}
+    $createErrorPath=[IO.Path]::GetTempFileName()
+    try {
+        $created=(& gh api --method POST "repos/$env:GITHUB_REPOSITORY/git/refs" -f "ref=refs/tags/$Tag" -f "sha=$Commit" 2>$createErrorPath | Out-String)
+        $createExit=$LASTEXITCODE
+        $createError=[IO.File]::ReadAllText($createErrorPath)
+        # A successful POST already returns the ref. An immediate GET can still be 404.
+        if($createExit -eq 0){$reference=$created | ConvertFrom-Json}
+        if($null -eq $reference){$reference=Get-GitHubJson $refEndpoint -MissingAttempts 5}
+        if($null -eq $reference){throw "Cannot create release tag $Tag at built commit $Commit (gh exit $createExit). $createError"}
+        if($reference.ref -and $reference.ref -cne "refs/tags/$Tag"){throw 'Unexpected created tag reference.'}
+    } finally {Remove-Item -LiteralPath $createErrorPath -Force}
 }
 $target=$reference.object
 for($depth=0;$null -ne $target -and $target.type -eq 'tag' -and $depth -lt 8;$depth++){
@@ -50,7 +58,7 @@ if($target.sha -ine $Commit){
 $release=Get-GitHubJson "repos/$env:GITHUB_REPOSITORY/releases/tags/$Tag"
 if($null -eq $release){
     & gh release create $Tag --repo $env:GITHUB_REPOSITORY --verify-tag --title "QuizDesk $version" --generate-notes
-    $release=Get-GitHubJson "repos/$env:GITHUB_REPOSITORY/releases/tags/$Tag"
+    $release=Get-GitHubJson "repos/$env:GITHUB_REPOSITORY/releases/tags/$Tag" -MissingAttempts 5
     if($null -eq $release){throw 'Cannot read created release.'}
 }
 if($release.tag_name -cne $Tag){throw 'Unexpected release tag.'}

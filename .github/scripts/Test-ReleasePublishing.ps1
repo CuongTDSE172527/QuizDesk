@@ -8,17 +8,21 @@ $global:QDReleaseTestCommit='aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa'
 $global:QDReleaseTestTagCommit=$global:QDReleaseTestCommit
 $global:QDReleaseTestTagExists=$true;$global:QDReleaseTestAnnotated=$false;$global:QDReleaseTestForbidden=$false
 $global:QDReleaseTestTagRace=$false;$global:QDReleaseTestReleaseRace=$false
+$global:QDReleaseTestCreateResponse=$false;$global:QDReleaseTestDelayedReads=0;$global:QDReleaseTestCreateDenied=$false
 function gh {
     $a=@($args);$global:QDReleaseTestCalls.Add(($a -join ' '));$global:LASTEXITCODE=0
     if($a[0] -eq 'api'){
         if($a[1] -eq '--method'){
+            if($global:QDReleaseTestCreateDenied){Write-Error 'Creation denied (HTTP 403)' -ErrorAction Continue;$global:LASTEXITCODE=1;return}
             $global:QDReleaseTestTagExists=$true
             $global:QDReleaseTestTagCommit=(@($a | Where-Object {$_ -like 'sha=*'})[0]).Substring(4)
             if($global:QDReleaseTestTagRace){$global:LASTEXITCODE=1}
+            if($global:QDReleaseTestCreateResponse){@{ref='refs/tags/v5.11.0';object=@{type='commit';sha=$global:QDReleaseTestTagCommit}} | ConvertTo-Json -Compress}
             return
         }
         if($global:QDReleaseTestForbidden){Write-Error 'Forbidden (HTTP 403)' -ErrorAction Continue;$global:LASTEXITCODE=1;return}
         if($a[1] -like '*/git/ref/tags/*'){
+            if($global:QDReleaseTestTagExists -and $global:QDReleaseTestDelayedReads -gt 0){$global:QDReleaseTestDelayedReads--;Write-Error 'Not Found (HTTP 404)' -ErrorAction Continue;$global:LASTEXITCODE=1;return}
             if(-not $global:QDReleaseTestTagExists){Write-Error 'Not Found (HTTP 404)' -ErrorAction Continue;$global:LASTEXITCODE=1;return}
             @{object=@{type=$(if($global:QDReleaseTestAnnotated){'tag'}else{'commit'});sha=$global:QDReleaseTestTagCommit}} | ConvertTo-Json -Compress;return
         }
@@ -133,10 +137,21 @@ $global:QDReleaseTestCalls.Clear();$global:QDReleaseTestTagCommit='bbbbbbbbbbbbb
 & $publish -Tag v5.11.0 -Commit $global:QDReleaseTestCommit -Platform ios-unsigned -Directory $folder -Automatic
 Check (@($global:QDReleaseTestCalls | Where-Object {$_ -like 'release *' -or $_ -like 'api --method POST*'}).Count -eq 0) 'IPA automatic push preserves a version tag assigned to another commit'
 $global:QDReleaseTestTagCommit=$global:QDReleaseTestCommit
-Write-Output 'All 33 release automation checks passed; gh was mocked (no network writes).'
+$global:QDReleaseTestAssets=@();$global:QDReleaseTestTagExists=$false;$global:QDReleaseTestCreateResponse=$true;$global:QDReleaseTestDelayedReads=2;$global:QDReleaseTestCalls.Clear()
+& $publish -Tag v5.11.0 -Commit $global:QDReleaseTestCommit -Platform windows -Directory $folder
+Check (@($global:QDReleaseTestCalls | Where-Object {$_ -like 'api *git/ref/tags/*'}).Count -eq 1) 'Successful tag creation uses POST response without an eventually consistent GET'
+$global:QDReleaseTestTagExists=$false;$global:QDReleaseTestCreateResponse=$false;$global:QDReleaseTestTagRace=$true;$global:QDReleaseTestCalls.Clear()
+& $publish -Tag v5.11.0 -Commit $global:QDReleaseTestCommit -Platform windows -Directory $folder
+Check (@($global:QDReleaseTestCalls | Where-Object {$_ -like 'api *git/ref/tags/*'}).Count -eq 4) 'Concurrent creation tolerates two delayed 404 reads'
+$global:QDReleaseTestTagRace=$false;$global:QDReleaseTestTagExists=$false;$global:QDReleaseTestCreateDenied=$true;$global:QDReleaseTestCalls.Clear()
+$failure='';try {& $publish -Tag v5.11.0 -Commit $global:QDReleaseTestCommit -Platform windows -Directory $folder}catch{$failure=$_.Exception.Message}
+Check ($failure -match 'HTTP 403' -and $failure -match 'gh exit 1') 'Creation failure retains the original GitHub error'
+Check (@($global:QDReleaseTestCalls | Where-Object {$_ -like 'api *git/ref/tags/*'}).Count -eq 6 -and @($global:QDReleaseTestCalls | Where-Object {$_ -like 'release *'}).Count -eq 0) 'Missing tag retries are bounded and never upload assets'
+Write-Output 'All 37 release automation checks passed; gh was mocked (no network writes).'
 
 
 } finally {
+    Remove-Variable -Name QDReleaseTestCreateResponse,QDReleaseTestDelayedReads,QDReleaseTestCreateDenied -Scope Global -ErrorAction SilentlyContinue
     foreach($key in $originalEnvironment.Keys){[Environment]::SetEnvironmentVariable($key,$originalEnvironment[$key])}
     Remove-Variable -Name QDReleaseTestCalls,QDReleaseTestExists,QDReleaseTestAssets,QDReleaseTestDraft,QDReleaseTestCommit,QDReleaseTestTagCommit,QDReleaseTestTagExists,QDReleaseTestAnnotated,QDReleaseTestForbidden,QDReleaseTestTagRace,QDReleaseTestReleaseRace -Scope Global -ErrorAction SilentlyContinue
 }
