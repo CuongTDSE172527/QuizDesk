@@ -1,3 +1,13 @@
+# QuizDesk 5.16.7 — 27/10/2026
+
+- Thêm hai slider trong Cài đặt → Phong cách kính: độ sáng (-50% đến +50%) và
+  độ trong suốt (0–100). Mặc định 0%/50% giữ giao diện của bản trước.
+- Áp dụng tint/alpha ngay khi kéo trên mọi port, giữ nguyên độ đậm của chữ.
+  Mức trong suốt là cường độ tương đối của lớp kính, có giới hạn nền để giữ khả năng đọc.
+- Tự lưu sau khi ngừng kéo khoảng 250 ms, ghi ngay khi app chuyển nền hoặc view đóng;
+  khôi phục lựa chọn khi mở lại. Slider được vô hiệu hóa khi tắt Phong cách kính.
+- Đồng bộ version 5.16.7; Android versionCode 60112, iOS build 27.
+
 # QuizDesk 5.16.6 — 27/10/2026
 
 - Triển khai phong cách kính dùng chung cho Windows, macOS, iOS và Android;

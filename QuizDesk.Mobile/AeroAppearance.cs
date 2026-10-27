@@ -11,6 +11,39 @@ public partial class MainView {
     readonly Grid glassBackdrop=new(){IsVisible=false,IsHitTestVisible=false};
     readonly ResourceDictionary aeroPalette=CreateAeroPalette();
     bool aeroPaletteInstalled,updatingAero;
+    readonly List<(SolidColorBrush Brush,Color Original,int MinimumAlpha)> glassBaseColors=new();
+    readonly List<(GradientStop Stop,Color Original)> glassBackdropColors=new();
+
+    static Color GlassShade(Color color,int brightness){
+        double amount=Math.Abs(brightness)/50d*0.18;
+        byte target=brightness>=0?(byte)255:(byte)0;
+        byte Shade(byte channel)=>(byte)Math.Clamp((int)Math.Round(channel+(target-channel)*amount),0,255);
+        return Color.FromArgb(color.A,Shade(color.R),Shade(color.G),Shade(color.B));
+    }
+
+    void ApplyGlassTuning(){
+        if(glassBaseColors.Count==0){
+            foreach(var palette in aeroPalette.ThemeDictionaries.Values.OfType<ResourceDictionary>()){
+                foreach(var entry in palette){
+                    int minimum=entry.Key switch {"QDSurface"=>32,"QDContainerLow"=>180,"QDContainer"=>110,"QDContainerHigh"=>180,_=>-1};
+                    if(minimum>=0&&entry.Value is SolidColorBrush brush)glassBaseColors.Add((brush,brush.Color,minimum));
+                    if(entry.Key is "QDGlassBackdrop"&&entry.Value is LinearGradientBrush backdrop){
+                        foreach(var stop in backdrop.GradientStops)glassBackdropColors.Add((stop,stop.Color));
+                    }
+                }
+            }
+        }
+        int transparency=Math.Clamp(preferences.GlassTransparency,0,100);
+        foreach(var (brush,original,minimum) in glassBaseColors){
+            double alpha=transparency<=50
+                ?255+(original.A-255)*transparency/50d
+                :original.A+(minimum-original.A)*(transparency-50)/50d;
+            var shade=GlassShade(original,Math.Clamp(preferences.GlassBrightness,-50,50));
+            brush.Color=Color.FromArgb((byte)Math.Clamp((int)Math.Round(alpha),0,255),shade.R,shade.G,shade.B);
+        }
+        foreach(var (stop,original) in glassBackdropColors)stop.Color=GlassShade(original,Math.Clamp(preferences.GlassBrightness,-50,50));
+    }
+
 
     static LinearGradientBrush GlassGradient(params string[] colors){
         var brush=new LinearGradientBrush {
@@ -50,6 +83,7 @@ public partial class MainView {
         if(aeroTopLevel==null)return;
         aeroWindow=aeroTopLevel as Window;
         aeroTopLevel.PropertyChanged+=AeroWindowChanged;
+        glassSettingsSaveTimer.Tick+=GlassSaveTick;
         UpdateAero();
     }
 
@@ -62,6 +96,7 @@ public partial class MainView {
         updatingAero=true;
         try {
             bool enabled=preferences.AeroGlass;
+            ApplyGlassTuning();
             bool desktopNative=MobilePlatform.DesktopHost&&(OperatingSystem.IsWindows()||OperatingSystem.IsMacOS());
             if(aeroWindow!=null){
                 aeroWindow.TransparencyBackgroundFallback=new SolidColorBrush(Color.Parse(aeroTopLevel.ActualThemeVariant==ThemeVariant.Dark?"#131720":"#F6F7FB"));
@@ -92,6 +127,7 @@ public partial class MainView {
     }
 
     void DetachAero(){
+        FlushGlassSettings();glassSettingsSaveTimer.Tick-=GlassSaveTick;
         if(aeroTopLevel!=null)aeroTopLevel.PropertyChanged-=AeroWindowChanged;
         if(aeroPaletteInstalled){
             Resources.MergedDictionaries.Remove(aeroPalette);

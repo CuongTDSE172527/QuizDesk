@@ -279,9 +279,7 @@ public partial class MainView : UserControl {
         var theme=new ComboBox {ItemsSource=new[]{"Sáng","Tối","Theo hệ thống"},SelectedIndex=preferences.Theme=="dark"?1:preferences.Theme=="system"?2:0,HorizontalAlignment=HorizontalAlignment.Stretch};
         theme.SelectionChanged+=(_,_)=>{preferences.Theme=theme.SelectedIndex==1?"dark":theme.SelectedIndex==2?"system":"light";ApplyTheme();SavePreferences();};
         page.Children.Add(Card(Field("Giao diện",theme)));
-        var glass=new ToggleSwitch {Name="AeroGlass",Content="Phong cách kính",IsChecked=preferences.AeroGlass};
-        glass.IsCheckedChanged+=(_,_)=>{preferences.AeroGlass=glass.IsChecked==true;UpdateAero();SavePreferences();};
-        page.Children.Add(Card(Stack(glass,Supporting("Nền và thanh điều hướng bán trong suốt. Desktop dùng blur khi được hỗ trợ; các nền tảng khác dùng lớp kính trên nền màu trong app."))));
+        page.Children.Add(GlassSettings());
         var motion=new ToggleSwitch {Content="Giảm chuyển động",IsChecked=preferences.ReducedMotion};
         motion.IsCheckedChanged+=(_,_)=>{preferences.ReducedMotion=motion.IsChecked==true;StopMotion(page);SavePreferences();};
         page.Children.Add(Card(Stack(motion,Supporting("Chuyển tiếp nhanh 90–140 ms. Bật để hiển thị nội dung tức thì."))));

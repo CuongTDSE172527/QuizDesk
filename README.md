@@ -1,4 +1,4 @@
-# QuizDesk 5.16.6 — Windows, macOS, Android và mã nguồn iOS
+# QuizDesk 5.16.7 — Windows, macOS, Android và mã nguồn iOS
 
 Word tổng hợp nhiều môn: khi nhập DOCX (hoặc DOC được chuyển đổi), ứng dụng bỏ qua
 mục lục Word và tạo một bộ đề cho mỗi tiêu đề môn/phần. Dùng Heading 1 cho tiêu đề môn
@@ -545,8 +545,8 @@ trên PC/mobile, không cần cài Microsoft Office, LibreOffice, không gọi s
 - Không thêm định dạng cũ XLS/DOC trong đợt này. .quiz vẫn là bản sao lưu đầy đủ
   nhất cho media, cấu hình thi và thông tin cần rà soát của QuizDesk.
 
-Version hiển thị là **5.16.6**, Android versionCode **60111**, iOS build **26**.
-Chạy Actions với version/tag `v5.16.6`, hoặc để trống tag ở lượt chạy thủ công sau
+Version hiển thị là **5.16.7**, Android versionCode **60112**, iOS build **27**.
+Chạy Actions với version/tag `v5.16.7`, hoặc để trống tag ở lượt chạy thủ công sau
 khi commit/push source. Bộ đóng gói macOS tự đọc version từ project Desktop.
 
 ## Tự động build khi push
@@ -577,3 +577,9 @@ kính trong app. Đây là phong cách kính trong giao diện, không phải na
 hay UIVisualEffectView trên Apple, và không nhìn xuyên ra wallpaper trên mobile.
 Tắt hiệu ứng để dùng bảng màu nền đặc. Không giảm opacity của chữ, thêm blur theo
 mỗi thẻ hoặc chạy animation nền liên tục. Khoảng an toàn cho tai thỏ vẫn được giữ.
+
+Trong phần Phong cách kính có hai slider **Độ sáng của kính** (-50% đến +50%,
+mặc định 0%) và **Độ trong suốt** (0–100, mặc định 50%). Thay đổi áp dụng ngay
+và được nhớ khi mở lại app. Mức trong suốt là cường độ tương đối: 0 làm lớp nền
+đặc, 100 đạt mức kính tối đa có giới hạn để giữ nội dung dễ đọc; không làm chữ
+trong suốt. Trên mobile, nền phía sau kính vẫn nằm trong app.

@@ -13,7 +13,10 @@ public partial class MainView {
             preferences.Theme=theme;ApplyTheme();await Task.Delay(120);
             Navigate("preferences");
             var toggle=Controls<ToggleSwitch>(page).Single(c=>c.Name=="AeroGlass");
+            var brightness=Controls<Slider>(page).Single(c=>c.Name=="GlassBrightness");
+            var transparency=Controls<Slider>(page).Single(c=>c.Name=="GlassTransparency");
             toggle.IsChecked=false;await Task.Delay(120);
+            Check(!brightness.IsEffectivelyEnabled&&!transparency.IsEffectivelyEnabled,"Glass sliders should be disabled while glass is off");
             Check(!aeroPaletteInstalled&&!glassBackdrop.IsVisible&&!preferencesStore.Load(out _).AeroGlass,"Glass off did not restore solid theme/persist");
             Check(window.TransparencyLevelHint.SequenceEqual(new[]{WindowTransparencyLevel.None}),"Glass off still requests native blur");
             Check(Background is ISolidColorBrush solid&&solid.Color.A==255,"Glass off leaves root transparent");
@@ -25,6 +28,24 @@ public partial class MainView {
             if(glassBackdrop.IsVisible){
                 Check(glassBackdrop.Background is LinearGradientBrush gradient&&gradient.GradientStops.All(s=>s.Color.A==255),"Portable glass backdrop must remain opaque behind translucent panels");
             }
+            Check(brightness.IsEffectivelyEnabled&&transparency.IsEffectivelyEnabled,"Glass sliders did not re-enable");
+            var palette=(ResourceDictionary)aeroPalette.ThemeDictionaries[theme=="dark"?Avalonia.Styling.ThemeVariant.Dark:Avalonia.Styling.ThemeVariant.Light];
+            var card=(SolidColorBrush)palette["QDContainerLow"];
+            string before=File.ReadAllText(preferencesStore.FilePath);
+            transparency.Value=0;Check(card.Color.A==255,"Minimum transparency must give an opaque card");
+            transparency.Value=100;Check(card.Color.A<255&&card.Color.A>=180,"Maximum transparency did not adjust alpha or discarded readability floor");
+            byte alpha=card.Color.A;
+            brightness.Value=-50;var darker=card.Color;
+            brightness.Value=50;var lighter=card.Color;
+            Check(lighter.R>darker.R&&lighter.G>darker.G&&lighter.B>darker.B&&lighter.A==alpha,"Brightness must affect tint independently of transparency");
+            brightness.Value=0;var neutral=card.Color;
+            brightness.Value=25;brightness.Value=0;Check(card.Color==neutral,"Repeated slider changes accumulate tint errors");
+            brightness.Value=20;transparency.Value=70;
+            Check(File.ReadAllText(preferencesStore.FilePath)==before,"Slider drag writes synchronously instead of debouncing");
+            await Task.Delay(320);
+            var saved=preferencesStore.Load(out _);
+            Check(saved.GlassBrightness==20&&saved.GlassTransparency==70,"Debounced slider values were not persisted");
+            Check(!glassBackdrop.IsVisible||((LinearGradientBrush)glassBackdrop.Background).GradientStops.All(s=>s.Color.A==255),"Slider made the portable backdrop transparent");
             await Capture("glass-settings-"+theme);
             Navigate("home");await Capture("glass-home-"+theme);
         }
@@ -37,11 +58,18 @@ public partial class MainView {
             Check(!glassBackdrop.IsVisible||glassBackdrop.Bounds.Size==outer.Bounds.Size,"Portable backdrop does not cover viewport");
             await Capture("glass-width-"+width);
         }
+        Navigate("preferences");
+        Controls<Slider>(page).Single(c=>c.Name=="GlassBrightness").Value=-17;
+        Controls<Slider>(page).Single(c=>c.Name=="GlassTransparency").Value=81;
+        PersistSession();
+        var paused=preferencesStore.Load(out _);Check(paused.GlassBrightness==-17&&paused.GlassTransparency==81,"App pause must flush pending slider settings");
+        Controls<Slider>(page).Single(c=>c.Name=="GlassBrightness").Value=12;
         var content=window.Content;window.Content=null;await Task.Delay(50);
+        Check(preferencesStore.Load(out _).GlassBrightness==12,"View detach must flush pending slider settings");
         Check(aeroTopLevel==null&&aeroWindow==null&&!aeroPaletteInstalled&&!glassBackdrop.IsVisible,"Glass detach leaked resources");
         window.Content=content;await Task.Delay(100);
         Check(aeroWindow==window&&aeroTopLevel==window,"Glass did not reattach");
-        return "PASS shared glass: light/dark, on/off, saved preference, native/portable backdrop, opaque fallback, header edge coverage at 320/360/1280, detach/reattach. Desktop host: "+MobilePlatform.DesktopHost+"; actual effect: "+window.ActualTransparencyLevel;
+        return "PASS shared glass: brightness/transparency sliders, live tint/alpha, no accumulation, debounce, pause/detach flush, light/dark, on/off, saved preference, native/portable backdrop, opaque fallback, header edge coverage at 320/360/1280, detach/reattach. Desktop host: "+MobilePlatform.DesktopHost+"; actual effect: "+window.ActualTransparencyLevel;
     }
 }
 #endif
