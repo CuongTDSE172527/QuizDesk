@@ -1,3 +1,9 @@
+# QuizDesk 5.16.2 — 27/10/2026
+
+- Nhận diện đáp án tô màu chữ trong Word, bao gồm màu chữ kế thừa từ style.
+- Giữ yêu cầu rà soát khi nhiều lựa chọn cùng được tô màu; ưu tiên đáp án ghi rõ.
+- Đồng bộ version 5.16.2; Android versionCode 60107, iOS build 22.
+
 # QuizDesk 5.16.1 — 27/10/2026
 
 - Tăng chữ số trong hai ô Số câu thi thử và Thời gian lên 20, dùng nét semibold
