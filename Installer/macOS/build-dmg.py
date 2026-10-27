@@ -3,7 +3,6 @@ import argparse
 import hashlib
 import plistlib
 import re
-import shutil
 import struct
 import subprocess
 import sys
@@ -44,7 +43,11 @@ def build(app, output, arch, version):
         stage = Path(temporary)
         payload, mount = stage / 'payload', stage / 'mount'
         payload.mkdir(); mount.mkdir()
-        shutil.copytree(app, payload / app.name, symlinks=True)
+        # Non-Mach-O DLL signatures live in extended attributes. shutil.copytree
+        # on macOS drops these, even if the original bundle passes codesign.
+        staged_app = payload / app.name
+        run('/usr/bin/ditto', '--rsrc', '--extattr', app, staged_app)
+        validate(staged_app, arch, version)
         (payload / 'Applications').symlink_to('/Applications', target_is_directory=True)
         (payload / 'INSTALL.txt').write_text(
             'QuizDesk ' + version + ' (' + arch + ') — macOS 14+\n\n'
@@ -67,7 +70,8 @@ def build(app, output, arch, version):
             # Do not overwrite /Applications or launch the app on the CI runner.
             validate(mount / app.name, arch, version)
             copied = stage / 'copied' / app.name
-            shutil.copytree(mount / app.name, copied, symlinks=True)
+            copied.parent.mkdir()
+            run('/usr/bin/ditto', '--rsrc', '--extattr', mount / app.name, copied)
             validate(copied, arch, version)
         finally:
             run('/usr/bin/hdiutil', 'detach', mount)

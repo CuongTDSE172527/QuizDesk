@@ -147,7 +147,7 @@ Build lại toàn bộ có thể tạo bytes khác do thời gian đóng gói, n
 
 - Chạy 24 kiểm thử publish giả lập (không ghi GitHub), 19 kiểm thử nhập nhiều file,
   30 gộp đề, 39 media và 25 xuất định dạng/trích câu và 25 xuất Office trước khi đóng gói.
-- macOS có 11 kiểm thử logic đóng gói với Apple tools giả lập.
+- macOS có 12 kiểm thử logic đóng gói với Apple tools giả lập.
 - Kiểm tra SHA-256 artifact tải xuống trước khi publish.
 - Actions được pin vào commit SHA của bản chính thức.
 - Build job chỉ có `contents: read`; publish job mới có `contents: write`.
@@ -198,3 +198,11 @@ Run workflow có tag tùy chọn; bỏ trống để lấy version từ source n
 
 Version hiện tại là **5.15.0** (Android 60104, iOS build 19), đã chuẩn bị cho release
 mới chứa DMG macOS và IPA chưa ký. Commit/push main để Actions build và publish.
+
+### Giữ chữ ký khi đóng gói macOS
+
+Sao chép `.app` đã ký bằng `/usr/bin/ditto --rsrc --extattr`, không dùng
+`shutil.copytree` trên macOS: chữ ký các DLL không phải Mach-O có thể nằm trong
+extended attributes, không chỉ trong nội dung file. Xác minh staging trước khi tạo
+DMG/PKG; DMG còn được mount chỉ đọc và sao chép ra ngoài để xác minh lại.
+Không ký lại payload sau khi sao chép hoặc bỏ qua lỗi codesign.

@@ -3,7 +3,6 @@ import argparse
 import hashlib
 import plistlib
 import re
-import shutil
 import struct
 import subprocess
 import sys
@@ -44,7 +43,10 @@ def build(app: Path, output: Path, arch: str, version: str):
         stage = Path(temp)
         root, scripts = stage / 'root', stage / 'scripts'
         root.mkdir(); scripts.mkdir()
-        shutil.copytree(app, root / app.name)
+        # Preserve extended-attribute signatures on managed DLLs as well as
+        # embedded Mach-O signatures. Plain Python copying loses the former.
+        run('/usr/bin/ditto', '--rsrc', '--extattr', app, root / app.name)
+        run('/usr/bin/codesign', '--verify', '--deep', '--strict', root / app.name)
         check = ('[ "$apple_silicon" = "1" ]' if arch == 'arm64' else '[ "$apple_silicon" != "1" ]')
         preinstall = '''#!/bin/sh
 set -eu

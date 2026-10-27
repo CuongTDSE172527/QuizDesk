@@ -1,5 +1,10 @@
 # QuizDesk 5.15.0 — 26/10/2026
 
+- Sửa lỗi build DMG ARM64/Intel báo `Avalonia.Base.dll: code object is not signed at all`:
+  dùng ditto giữ metadata chữ ký khi sao chép bundle đã ký cho DMG và PKG.
+  Xác minh chữ ký ngay sau staging, trong ảnh đĩa và sau khi sao chép ra ngoài;
+  không bỏ qua lỗi xác minh và không ký lại để che lỗi bản sao.
+
 - Actions iOS xuất IPA chưa ký và SHA-256 lên GitHub Releases cùng version/tag với các nền tảng.
   Tự chạy khi push main/tag, hỗ trợ chạy thủ công; PR chỉ build, giữ Artifacts/log.
   Kiểm tra version iOS, checksum và commit; không di chuyển tag hoặc ghi đè asset đã phát hành.

@@ -32,7 +32,11 @@ class MacPackageTests(unittest.TestCase):
             def fake_run(*arguments):
                 arguments = list(map(str, arguments)); calls.append(arguments)
                 command = Path(arguments[0]).name
-                if command == 'pkgbuild':
+                if command == 'ditto':
+                    import shutil
+                    self.assertEqual(arguments[1:3], ['--rsrc', '--extattr'])
+                    shutil.copytree(arguments[-2], arguments[-1], symlinks=True)
+                elif command == 'pkgbuild':
                     stage = Path(arguments[arguments.index('--root') + 1]).parent
                     scripts = Path(arguments[arguments.index('--scripts') + 1])
                     pre = (scripts / 'preinstall').read_text()
@@ -64,7 +68,7 @@ class MacPackageTests(unittest.TestCase):
                 module.build(app, output, arch, '5.13.0')
             manifest = root / f'QuizDesk-5.13.0-macos-{arch}-SHA256.txt'
             self.assertEqual(manifest.read_text(), f'{hashlib.sha256(output.read_bytes()).hexdigest()}  {output.name}\n')
-            self.assertEqual([Path(command[0]).name for command in calls], ['codesign', 'pkgbuild', 'productbuild', 'productbuild', 'xar'])
+            self.assertEqual([Path(command[0]).name for command in calls], ['codesign', 'ditto', 'codesign', 'pkgbuild', 'productbuild', 'productbuild', 'xar'])
 
     def test_arm64_native_packaging_arguments_and_manifest(self):
         self.exercise('arm64')
@@ -106,7 +110,7 @@ dmg_spec.loader.exec_module(dmg)
 
 class DmgTests(unittest.TestCase):
     fixture = MacPackageTests.fixture
-    def check_dmg(self, arch, fail_copy=False):
+    def check_dmg(self, arch, fail_copy=False, fail_stage=False):
         import shutil
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary)
@@ -117,13 +121,18 @@ class DmgTests(unittest.TestCase):
             def fake_run(*arguments):
                 nonlocal payload
                 args = list(map(str, arguments)); calls.append(args)
-                if Path(args[0]).name == 'hdiutil':
+                if Path(args[0]).name == 'ditto':
+                    self.assertEqual(args[1:3], ['--rsrc', '--extattr'])
+                    shutil.copytree(args[-2], args[-1], symlinks=True)
+                elif Path(args[0]).name == 'hdiutil':
                     if args[1] == 'create':
                         payload = Path(args[args.index('-srcfolder') + 1])
                         output.write_bytes(b'inert-dmg-fixture')
                     elif args[1] == 'attach':
                         mount = Path(args[args.index('-mountpoint') + 1])
                         shutil.copytree(payload, mount, dirs_exist_ok=True, symlinks=True)
+                elif fail_stage and Path(args[-1]).parent.name == 'payload':
+                    raise RuntimeError('staged signature invalid')
                 elif fail_copy and Path(args[-1]).parent.name == 'copied':
                     raise RuntimeError('copied signature invalid')
             # Windows test hosts cannot create Unix symlinks without elevated rights.
@@ -132,18 +141,19 @@ class DmgTests(unittest.TestCase):
                  patch.object(Path, 'symlink_to', lambda self, target, **kw: self.write_text(str(target))), \
                  patch.object(Path, 'is_symlink', lambda self: self.name == 'Applications'), \
                  patch.object(Path, 'readlink', return_value=Path('/Applications')):
-                if fail_copy:
-                    with self.assertRaisesRegex(RuntimeError, 'copied signature invalid'):
+                if fail_copy or fail_stage:
+                    with self.assertRaisesRegex(RuntimeError, 'staged signature invalid' if fail_stage else 'copied signature invalid'):
                         dmg.build(app, output, arch, '5.13.0')
                 else:
                     dmg.build(app, output, arch, '5.13.0')
-            self.assertEqual([c[1] for c in calls if Path(c[0]).name == 'hdiutil'], ['create', 'verify', 'attach', 'detach'])
+            self.assertEqual([c[1] for c in calls if Path(c[0]).name == 'hdiutil'], [] if fail_stage else ['create', 'verify', 'attach', 'detach'])
             manifest = root / f'QuizDesk-5.13.0-macos-{arch}-DMG-SHA256.txt'
-            if fail_copy:
+            if fail_copy or fail_stage:
                 self.assertFalse(manifest.exists())
             else:
                 self.assertEqual(manifest.read_text(), f'{hashlib.sha256(output.read_bytes()).hexdigest()}  {output.name}\n')
-                self.assertEqual(len([c for c in calls if Path(c[0]).name == 'codesign']), 3)
+                self.assertEqual(len([c for c in calls if Path(c[0]).name == 'codesign']), 4)
+                self.assertEqual(len([c for c in calls if Path(c[0]).name == 'ditto']), 2)
 
     def test_arm64_dmg_mount_copy_and_checksum(self):
         self.check_dmg('arm64')
@@ -153,6 +163,9 @@ class DmgTests(unittest.TestCase):
 
     def test_failed_copied_signature_detaches_and_has_no_manifest(self):
         self.check_dmg('arm64', fail_copy=True)
+
+    def test_staged_signature_failure_stops_before_image_creation(self):
+        self.check_dmg('arm64', fail_stage=True)
 
     def test_dmg_wrong_architecture_rejected_without_apple_commands(self):
         with tempfile.TemporaryDirectory() as temporary:
