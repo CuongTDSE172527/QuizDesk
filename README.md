@@ -1,4 +1,4 @@
-# QuizDesk 5.16.0 — Windows, macOS, Android và mã nguồn iOS
+# QuizDesk 5.16.1 — Windows, macOS, Android và mã nguồn iOS
 
 [Tải bản cài / Releases](https://github.com/CuongTDSE172527/QuizDesk/releases/latest) · [Changelog](CHANGELOG.md)
 
@@ -537,8 +537,8 @@ trên PC/mobile, không cần cài Microsoft Office, LibreOffice, không gọi s
 - Không thêm định dạng cũ XLS/DOC trong đợt này. .quiz vẫn là bản sao lưu đầy đủ
   nhất cho media, cấu hình thi và thông tin cần rà soát của QuizDesk.
 
-Version hiển thị là **5.16.0**, Android versionCode **60105**, iOS build **20**.
-Chạy Actions với version/tag `v5.16.0`, hoặc để trống tag ở lượt chạy thủ công sau
+Version hiển thị là **5.16.1**, Android versionCode **60106**, iOS build **21**.
+Chạy Actions với version/tag `v5.16.1`, hoặc để trống tag ở lượt chạy thủ công sau
 khi commit/push source. Bộ đóng gói macOS tự đọc version từ project Desktop.
 
 ## Tự động build khi push

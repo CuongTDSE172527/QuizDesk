@@ -131,6 +131,8 @@
   <Style Selector="TextBox:focus-within"><Setter Property="BorderBrush" Value="{DynamicResource QDPrimary}" /><Setter Property="BorderThickness" Value="1" /></Style>
   <Style Selector="TextBox /template/ TextBlock#PART_Watermark"><Setter Property="Foreground" Value="{DynamicResource QDOnSurfaceVariant}" /><Setter Property="Opacity" Value="1" /></Style>
   <Style Selector="ComboBox, NumericUpDown"><Setter Property="MinHeight" Value="56" /><Setter Property="CornerRadius" Value="8" /><Setter Property="Background" Value="{DynamicResource QDContainerLow}" /><Setter Property="Foreground" Value="{DynamicResource QDOnSurface}" /><Setter Property="BorderBrush" Value="{DynamicResource QDOutline}" /><Setter Property="BorderThickness" Value="1" /></Style>
+  <Style Selector="NumericUpDown.examSetting"><Setter Property="FontSize" Value="20" /><Setter Property="FontWeight" Value="SemiBold" /></Style>
+  <Style Selector="NumericUpDown.examSetting /template/ TextBox"><Setter Property="FontSize" Value="20" /><Setter Property="FontWeight" Value="SemiBold" /><Setter Property="VerticalContentAlignment" Value="Center" /></Style>
   <Style Selector="ComboBoxItem:selected"><Setter Property="Background" Value="{DynamicResource QDSecondaryContainer}" /><Setter Property="Foreground" Value="{DynamicResource QDOnSecondaryContainer}" /></Style>
   <Style Selector="CheckBox">
     <Setter Property="MinHeight" Value="48" /><Setter Property="MinWidth" Value="48" /><Setter Property="Foreground" Value="{DynamicResource QDOnSurface}" />

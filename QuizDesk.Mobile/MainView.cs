@@ -288,6 +288,7 @@ public partial class MainView : UserControl {
         setup.Count=Math.Clamp(setup.Count,1,Math.Max(1,bank.Count));Heading("Bài kiểm tra của bạn","Chọn nhịp học phù hợp",$"{setup.Included.Count} câu được chọn từ bộ “{title}”.");
         int unscored=bank.Count(q=>setup.Included.Contains(q.Number)&&QuestionReview.ScoringAnswer(q)=="");if(unscored>0)page.Children.Add(ReviewCard(Text($"{unscored} câu đã chọn chưa có đáp án hoặc còn trùng/mơ hồ. Bạn vẫn có thể làm bài; các câu này chưa tính điểm. Mở Bộ đề → Sửa để bổ sung.",14)));
         var count=Number(setup.Count,Math.Max(1,bank.Count));var minutes=Number(setup.Minutes,300);
+        count.Classes.Add("examSetting");minutes.Classes.Add("examSetting");
         var shuffle=new ToggleSwitch {Content="Trộn thứ tự câu hỏi",IsChecked=setup.ShuffleQuestions};var options=new ToggleSwitch {Content="Trộn các lựa chọn",IsChecked=setup.ShuffleOptions};
         count.ValueChanged+=(_,_)=>{setup.Count=Value(count);dirty=true;PersistBank();RememberExamSettings();};minutes.ValueChanged+=(_,_)=>{setup.Minutes=Value(minutes);dirty=true;PersistBank();RememberExamSettings();};
         shuffle.IsCheckedChanged+=(_,_)=>{setup.ShuffleQuestions=shuffle.IsChecked==true;dirty=true;PersistBank();RememberExamSettings();};options.IsCheckedChanged+=(_,_)=>{setup.ShuffleOptions=options.IsChecked==true;dirty=true;PersistBank();RememberExamSettings();};

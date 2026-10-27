@@ -1,3 +1,9 @@
+# QuizDesk 5.16.1 — 27/10/2026
+
+- Tăng chữ số trong hai ô Số câu thi thử và Thời gian lên 20, dùng nét semibold
+  và căn giữa theo chiều dọc để dễ đọc hơn trên PC/mobile.
+- Đồng bộ version 5.16.1; Android versionCode 60106, iOS build 21.
+
 # QuizDesk 5.16.0 — 27/10/2026
 
 - Căn ngang nút Tiếp tục flashcards với Học flashcards: áp dụng cùng khoảng cách
