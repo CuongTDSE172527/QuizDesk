@@ -1,3 +1,9 @@
+# QuizDesk 5.16.0 — 27/10/2026
+
+- Căn ngang nút Tiếp tục flashcards với Học flashcards: áp dụng cùng khoảng cách
+  của hàng nút ngay khi tạo. Màn hình hẹp vẫn tự xuống dòng khi cần.
+- Đồng bộ version 5.16.0; Android versionCode 60105, iOS build 20.
+
 # QuizDesk 5.15.0 — 26/10/2026
 
 - Sửa lỗi build DMG ARM64/Intel báo `Avalonia.Base.dll: code object is not signed at all`:

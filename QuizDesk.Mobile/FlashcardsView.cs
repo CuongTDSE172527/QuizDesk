@@ -19,10 +19,10 @@ public partial class MainView {
     MediaGallery flashMedia;
     void StudyEntry() {
         int count=bank.Count(q=>setup.Included.Contains(q.Number)&&QuestionReview.ScoringAnswer(q)!="");
-        var actions=Row(Btn("Học flashcards",StartStudy,true));
+        var startStudy=Btn("Học flashcards",StartStudy,true);
         var saved=studyStore.Load(out string warning);
         if(warning!="")Notify(warning,true);
-        if(saved!=null)actions.Children.Add(Btn("Tiếp tục flashcards",()=>OpenStudy(saved)));
+        var actions=saved==null?Row(startStudy):Row(startStudy,Btn("Tiếp tục flashcards",()=>OpenStudy(saved)));
         page.Children.Add(Card(Stack(Text("Học bằng flashcards",22),Text("Tự nhớ đáp án trước khi lật thẻ. Đánh dấu Đã nhớ hoặc Cần học lại để luyện tập tiếp.",14),
             Supporting($"{count} câu đã chọn có thể tạo thẻ. Câu thiếu đáp án hoặc còn mơ hồ được giữ trong bộ đề để bạn sửa.",13),
             Supporting(saved==null?"Thẻ được tạo từ bộ đề đang chọn.":"Lượt học đã lưu: "+saved.Title+". Bắt đầu lượt mới để lấy các sửa đổi mới nhất của bộ đề.",12),actions)));
