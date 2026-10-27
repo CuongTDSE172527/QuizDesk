@@ -89,11 +89,11 @@ môi trường của .NET Android; keystore được xóa khỏi runner sau khi 
    Tăng cả `ApplicationVersion` Android (số nguyên lớn hơn bản đã phát hành,
    hiện bản gốc là 60100). Nếu cập nhật iOS cùng đợt, đồng bộ version/build iOS.
    Inno Setup nhận version trực tiếp từ CI, không cần sửa tên bộ cài thủ công.
-3. Commit/push các thay đổi version, rồi tạo tag khớp source, ví dụ `v5.16.4`:
+3. Commit/push các thay đổi version, rồi tạo tag khớp source, ví dụ `v5.16.5`:
 
 ```powershell
-git tag v5.16.4
-git push origin v5.16.4
+git tag v5.16.5
+git push origin v5.16.5
 ```
 
 4. Theo dõi cả Android APK release, Windows EXE release và macOS DMG release.
@@ -115,7 +115,7 @@ EXE hiện không ký Authenticode; workflow không thêm chứng chỉ Windows.
 Sau khi commit/push thay đổi lên nhánh mặc định:
 
 1. Vào workflow tương ứng → **Run workflow** → chọn nhánh `main`.
-2. Để trống ô `tag` để dùng version source (hiện là `v5.16.4`), hoặc nhập tag
+2. Để trống ô `tag` để dùng version source (hiện là `v5.16.5`), hoặc nhập tag
    khớp version. Không cần tự tạo tag trước khi chạy thủ công.
 3. Nếu chạy thủ công, chạy cả Windows/Android/macOS trên cùng commit; hoặc chỉ
    push `main` để cả bốn workflow tự bắt đầu.
@@ -196,7 +196,7 @@ Version đã gắn tag ở commit khác không bị thay thế; tăng version đ
 Lượt chạy lại cùng commit bỏ qua asset giống hệt và từ chối file khác nội dung.
 Run workflow có tag tùy chọn; bỏ trống để lấy version từ source như Android/Windows/macOS.
 
-Version hiện tại là **5.16.4** (Android 60109, iOS build 24), đã chuẩn bị cho release
+Version hiện tại là **5.16.5** (Android 60110, iOS build 25), đã chuẩn bị cho release
 mới chứa DMG macOS và IPA chưa ký. Commit/push main để Actions build và publish.
 
 ### Giữ chữ ký khi đóng gói macOS

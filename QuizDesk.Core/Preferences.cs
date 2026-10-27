@@ -14,6 +14,7 @@ public class AppPreferences {
     public bool ShuffleQuestions {get;set;}=true;
     public bool ShuffleOptions {get;set;}=false;
     public bool ReducedMotion {get;set;}=false;
+    public bool AeroGlass {get;set;}=true;
     public void Normalize() {
         if(Version!=1)throw new InvalidDataException("Phiên bản file cài đặt chưa được hỗ trợ.");
         if(Theme!="light"&&Theme!="dark"&&Theme!="system")Theme="light";

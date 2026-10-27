@@ -1,11 +1,11 @@
 #ifndef AppSource
-  #define AppSource "..\QuizDesk-5.16.4-win-x64"
+  #define AppSource "..\QuizDesk-5.16.5-win-x64"
 #endif
 #ifndef SetupOutput
   #define SetupOutput ".."
 #endif
 #ifndef AppVersion
-  #define AppVersion "5.16.4"
+  #define AppVersion "5.16.5"
 #endif
 [Setup]
 ChangesAssociations=yes

@@ -1,4 +1,4 @@
-# QuizDesk 5.16.4 — Windows, macOS, Android và mã nguồn iOS
+# QuizDesk 5.16.5 — Windows, macOS, Android và mã nguồn iOS
 
 Word tổng hợp nhiều môn: khi nhập DOCX (hoặc DOC được chuyển đổi), ứng dụng bỏ qua
 mục lục Word và tạo một bộ đề cho mỗi tiêu đề môn/phần. Dùng Heading 1 cho tiêu đề môn
@@ -545,8 +545,8 @@ trên PC/mobile, không cần cài Microsoft Office, LibreOffice, không gọi s
 - Không thêm định dạng cũ XLS/DOC trong đợt này. .quiz vẫn là bản sao lưu đầy đủ
   nhất cho media, cấu hình thi và thông tin cần rà soát của QuizDesk.
 
-Version hiển thị là **5.16.4**, Android versionCode **60109**, iOS build **24**.
-Chạy Actions với version/tag `v5.16.4`, hoặc để trống tag ở lượt chạy thủ công sau
+Version hiển thị là **5.16.5**, Android versionCode **60110**, iOS build **25**.
+Chạy Actions với version/tag `v5.16.5`, hoặc để trống tag ở lượt chạy thủ công sau
 khi commit/push source. Bộ đóng gói macOS tự đọc version từ project Desktop.
 
 ## Tự động build khi push
@@ -564,3 +564,12 @@ Từ 5.14.0, ngày giờ thiết bị hiển thị cạnh nút hướng dẫn, t
 `dd/MM/yyyy · HH:mm:ss` (24 giờ). Cập nhật mỗi giây, dùng lịch Gregorian và giờ
 địa phương; màn hình nhỏ hiển thị ngày và giờ hai dòng. Đồng hồ làm mới ngay
 khi quay lại ứng dụng và dùng timer riêng với đồng hồ đếm ngược bài thi.
+
+### Kính mờ Aero trên Windows
+
+Desktop Windows mặc định bật hiệu ứng kính mờ cho nền cửa sổ và thanh điều hướng,
+kèm ánh sáng nhẹ trên thanh đầu. Khung nội dung có lớp phủ để giữ độ tương phản.
+Vào **Cài đặt → Kính mờ Aero** để bật/tắt; lựa chọn tự lưu cho lần mở app tiếp theo.
+Hiệu ứng theo chế độ sáng/tối. Nếu Windows không cung cấp AcrylicBlur/Blur,
+app tự dùng nền đặc. Không giảm opacity toàn cửa sổ/chữ và không thêm blur cho từng thẻ.
+Mobile và macOS tiếp tục dùng bảng màu nền đặc.

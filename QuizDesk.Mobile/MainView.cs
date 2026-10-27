@@ -96,7 +96,7 @@ public partial class MainView : UserControl {
         timer.Tick+=(_,_)=>Tick();
         headerDateTimeTimer.Tick+=(_,_)=>UpdateHeaderDateTime();
         AttachedToVisualTree+=(_,_)=>{
-            UpdateHeaderDateTime();headerDateTimeTimer.Start();
+            UpdateHeaderDateTime();headerDateTimeTimer.Start();AttachAero();
             MobilePlatform.IncomingQuiz+=IncomingChanged;IncomingChanged();
             if(Host!=null)Host.BackRequested+=HandleBack;
             if(restoredExam!=null){var state=restoredExam;restoredExam=null;RestoreExam(state);}else if(restoredStudy?.InProgress==true){var state=restoredStudy;restoredStudy=null;OpenStudy(state);}else if(active&&!practice)timer.Start();
@@ -104,7 +104,7 @@ public partial class MainView : UserControl {
             if(!qaStarted){qaStarted=true;Dispatcher.UIThread.Post(async()=>await VerifyMobile());}
 #endif
         };
-        DetachedFromVisualTree+=(_,_)=>{headerDateTimeTimer.Stop();MobilePlatform.IncomingQuiz-=IncomingChanged;PersistSession();timer.Stop();if(Host!=null)Host.BackRequested-=HandleBack;};
+        DetachedFromVisualTree+=(_,_)=>{DetachAero();headerDateTimeTimer.Stop();MobilePlatform.IncomingQuiz-=IncomingChanged;PersistSession();timer.Stop();if(Host!=null)Host.BackRequested-=HandleBack;};
         Navigate("home");string warning=string.Join(" ",new[]{settingsWarning,draftWarning,examWarning,libraryWarning,studyWarning}.Where(s=>s!=""));if(warning!="")Notify(warning,true);
     }
     static TextBlock Text(string value,double size=14)=>new() {Text=value,FontSize=size,TextWrapping=TextWrapping.Wrap,LineHeight=size*1.4};
@@ -277,6 +277,11 @@ public partial class MainView : UserControl {
         var theme=new ComboBox {ItemsSource=new[]{"Sáng","Tối","Theo hệ thống"},SelectedIndex=preferences.Theme=="dark"?1:preferences.Theme=="system"?2:0,HorizontalAlignment=HorizontalAlignment.Stretch};
         theme.SelectionChanged+=(_,_)=>{preferences.Theme=theme.SelectedIndex==1?"dark":theme.SelectedIndex==2?"system":"light";ApplyTheme();SavePreferences();};
         page.Children.Add(Card(Field("Giao diện",theme)));
+        if(MobilePlatform.DesktopHost&&OperatingSystem.IsWindows()){
+            var glass=new ToggleSwitch {Name="AeroGlass",Content="Kính mờ Aero",IsChecked=preferences.AeroGlass};
+            glass.IsCheckedChanged+=(_,_)=>{preferences.AeroGlass=glass.IsChecked==true;UpdateAero();SavePreferences();};
+            page.Children.Add(Card(Stack(glass,Supporting("Kính mờ ở nền cửa sổ và thanh điều hướng. Tự dùng nền đặc nếu hệ thống không hỗ trợ trong suốt."))));
+        }
         var motion=new ToggleSwitch {Content="Giảm chuyển động",IsChecked=preferences.ReducedMotion};
         motion.IsCheckedChanged+=(_,_)=>{preferences.ReducedMotion=motion.IsChecked==true;StopMotion(page);SavePreferences();};
         page.Children.Add(Card(Stack(motion,Supporting("Chuyển tiếp nhanh 90–140 ms. Bật để hiển thị nội dung tức thì."))));

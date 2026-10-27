@@ -1,3 +1,13 @@
+# QuizDesk 5.16.5 — 27/10/2026
+
+- Thêm kính mờ Aero cho desktop Windows: nền và thanh điều hướng bán trong suốt,
+  ánh sáng nhẹ ở thanh đầu; khung nội dung có lớp phủ giữ chữ dễ đọc.
+- Thêm công tắc Kính mờ Aero trong Cài đặt, tự lưu và khôi phục khi mở lại app.
+- Dùng AcrylicBlur/Blur khi hệ thống hỗ trợ; tự trở về bảng màu đặc khi không hỗ trợ
+  hoặc tắt hiệu ứng. Theo giao diện sáng/tối/hệ thống; không áp dụng opacity lên chữ.
+- Mobile/macOS giữ bảng màu nền đặc.
+- Đồng bộ version 5.16.5; Android versionCode 60110, iOS build 25.
+
 # QuizDesk 5.16.4 — 27/10/2026
 
 - Tách tài liệu Word tổng hợp thành các bộ đề theo tiêu đề môn/phần; bỏ qua mục lục Word.
