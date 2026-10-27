@@ -177,11 +177,16 @@ public partial class MainView : UserControl {
     async Task Load(string path,string displayName=null) {
         if(busy)return;busy=true;shell.IsEnabled=false;navigation.IsEnabled=false;Notify("Đang đọc file: "+(displayName??Path.GetFileName(path)));
         try {
-            QuizSetup loaded=null;var list=await Task.Run(()=>Importers.Load(path,out loaded));
+            var imports=await Task.Run(()=>Importers.LoadBanks(path,displayName??Path.GetFileName(path)));
             if(!PersistBank())return;
-            var document=library.Create(new WorkspaceBank {Title=Path.GetFileNameWithoutExtension(displayName??path),Bank=list,Setup=Path.GetExtension(path).Equals(".quiz",StringComparison.OrdinalIgnoreCase)?loaded:preferences.CreateSetup(list)},displayName??Path.GetFileName(path),true);
+            LibraryBank document=null;
+            foreach(var imported in imports){
+                if(!Path.GetExtension(path).Equals(".quiz",StringComparison.OrdinalIgnoreCase))imported.Content.Setup=preferences.CreateSetup(imported.Content.Bank);
+                var saved=library.Create(imported.Content,imported.SourceName,true);document??=saved;
+            }
             AdoptBank(document);selectingBanks=false;selectedBanks.Clear();RememberSelectedBank();expandedBankId=null;Navigate("bank");
-            Notify($"Đã nhập {bank.Count} câu • {bank.Count(q=>q.Note!="")} câu có giải thích/ghi chú • {bank.Count(QuestionReview.RequiresReview)} câu cần sửa/bổ sung • {bank.Count(q=>QuestionReview.ScoringAnswer(q)=="")} câu chưa tính điểm. Mở bộ đề và chọn Chỉ hiện câu cần sửa để kiểm tra.");
+            var all=imports.SelectMany(i=>i.Content.Bank).ToList();
+            Notify($"Đã nhập {all.Count} câu vào {imports.Count} bộ đề{(imports.Count>1?" theo từng môn":"")} • {all.Count(q=>q.Note!="")} câu có giải thích/ghi chú • {all.Count(QuestionReview.RequiresReview)} câu cần sửa/bổ sung • {all.Count(q=>QuestionReview.ScoringAnswer(q)=="")} câu chưa tính điểm. Mở bộ đề và chọn Chỉ hiện câu cần sửa để kiểm tra.");
         }catch(System.Text.RegularExpressions.RegexMatchTimeoutException){Notify("Tài liệu có cấu trúc văn bản xử lý quá lâu. Hãy chia nhỏ hoặc lưu lại file trước khi nhập.",true);}catch(Exception ex){Notify(ex.Message,true);}finally{busy=false;navigation.IsEnabled=true;shell.IsEnabled=true;IncomingChanged();}
     }
     async void Save() {

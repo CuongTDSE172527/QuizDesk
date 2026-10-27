@@ -7,15 +7,39 @@ using System.Text.RegularExpressions;
 using System.Xml.Linq;
 namespace QuizDesk;
 
-public static class WordReader {
+public sealed record WordSection(string Title,List<Question> Questions);
+
+public static partial class WordReader {
     static readonly XNamespace W="http://schemas.openxmlformats.org/wordprocessingml/2006/main";
     static string Plain(XElement e)=>string.Concat(e.Descendants().Where(x=>x.Name==W+"t"||x.Name==W+"tab"||x.Name==W+"br").Select(x=>x.Name==W+"t"?x.Value:x.Name==W+"tab"?"\t":"\n")).Trim();
     static bool On(XElement e)=>e!=null&&!new[]{"0","false","off"}.Contains((string)e.Attribute(W+"val"));
     public static List<Question> Read(string path) {
+        var sections=ReadSections(path);
+        if(sections.Count==1)return sections[0].Questions;
+        var result=new List<Question>();
+        foreach(var section in sections)foreach(var q in section.Questions){
+            q.Text=$"[{section.Title} — Câu {q.Number}]\n{q.Text}";q.Number=result.Count+1;result.Add(q);
+        }
+        Importers.Validate(result);return result;
+    }
+    public static List<WordSection> ReadSections(string path) {
         using var zip=InputSafety.OpenArchive(path);
         XDocument Xml(string name){var entry=zip.GetEntry(name);if(entry==null)return null;return InputSafety.ReadXml(entry);}
         var doc=Xml("word/document.xml")??throw new Exception("File Word thiếu nội dung.");
         var styles=Xml("word/styles.xml");var numbering=Xml("word/numbering.xml");
+        var sections=SplitSections(doc,styles,Path.GetFileNameWithoutExtension(path));
+        var result=new List<WordSection>();
+        foreach(var section in sections){
+            try {result.Add(new(section.title,ReadDocument(section.doc,styles,numbering,zip,Xml,sections.Count>1)));}
+            catch(Exception ex) when(ex is InvalidDataException||ex.GetType()==typeof(Exception)){
+                throw new InvalidDataException($"{section.title}: {ex.Message}",ex);
+            }
+        }
+        InputSafety.Require(result.Sum(s=>s.Questions.Count)<=InputSafety.MaxQuestions);
+        MediaFiles.CheckBank(result.SelectMany(s=>s.Questions).ToList());
+        return result;
+    }
+    static List<Question> ReadDocument(XDocument doc,XDocument styles,XDocument numbering,ZipArchive zip,Func<string,XDocument> Xml,bool allowRepeatedNumbers) {
         var styleIndex=new Dictionary<string,XElement>(StringComparer.Ordinal);
         foreach(var style in styles?.Root?.Elements(W+"style")??Enumerable.Empty<XElement>()) {
             string id=(string)style.Attribute(W+"styleId");
@@ -97,7 +121,7 @@ public static class WordReader {
         var result=new List<Question>();Question current=null;string option=null;bool noteMode=false,answerMode=false,answerFinished=false;
         var inline=new Dictionary<Question,List<string>>();
         var reviewed=new Dictionary<Question,ReviewedAnswers>();
-        var bold=new Dictionary<int,HashSet<string>>();var highlighted=new Dictionary<int,HashSet<string>>();
+        var bold=new Dictionary<Question,HashSet<string>>();var highlighted=new Dictionary<Question,HashSet<string>>();
         string ListFormat(XElement p) {
             var props=p.Element(W+"pPr")?.Element(W+"numPr");if(props==null)return "";
             string id=(string)props.Element(W+"numId")?.Attribute(W+"val"),level=(string)props.Element(W+"ilvl")?.Attribute(W+"val")??"0";
@@ -127,14 +151,29 @@ public static class WordReader {
             }
             if(paragraph.Descendants().Any(e=>e.Name.LocalName=="OLEObject"))QuestionReview.Warn(current,"Đối tượng OLE nhúng chưa hỗ trợ. Hãy thêm file ảnh/GIF/video gốc trong màn hình Sửa.");
         }
-        foreach(var p in doc.Descendants(W+"p").Where(p=>!p.Ancestors(W+"tbl").Any(t=>answerTables.Contains(t)))) {
+        var paragraphs=doc.Descendants(W+"p").Where(p=>!p.Ancestors(W+"tbl").Any(t=>answerTables.Contains(t))).ToList();
+        for(int index=0;index<paragraphs.Count;index++) {
+            var p=paragraphs[index];
             string line=Plain(p);if(line==""){Attach(p,noteMode||answerMode||answerFinished?"note":option??"question");continue;}
+            if(SafeRegex.IsMatch(line,@"^(?:BẢNG\s+)?ĐÁP\s+ÁN\s*[:：]?\s*$",RegexOptions.IgnoreCase)){
+                int next=index+1;while(next<paragraphs.Count&&Plain(paragraphs[next])=="")next++;
+                bool found=false;
+                while(next<paragraphs.Count){
+                    var key=SafeRegex.Match(Plain(paragraphs[next]),@"^(?:Câu\s*)?(\d+)\s*[.:)-]?\s*([A-H])\s*$",RegexOptions.IgnoreCase);
+                    if(!key.Success)break;
+                    int number=int.Parse(key.Groups[1].Value);
+                    if(!tableKeys.ContainsKey(number))tableKeys[number]=new();
+                    tableKeys[number].Add((key.Groups[2].Value.ToUpperInvariant(),"","","Bảng đáp án cuối môn"));
+                    found=true;index=next;next++;while(next<paragraphs.Count&&Plain(paragraphs[next])=="")next++;
+                }
+                if(found){option=null;noteMode=answerMode=false;answerFinished=true;continue;}
+            }
             if(ReviewedAnswers.IsReferences(line)||SafeRegex.IsMatch(line,@"^(ĐỐI CHIẾU ĐÁP ÁN|Tài liệu đối chiếu|Các câu cần đặc biệt|Màu xanh lá:)",RegexOptions.IgnoreCase))break;
             var q=SafeRegex.Match(line,@"^(?:Câu\s+(\d+)\s*[.:)]?|(\d+)\s*[.)])\s*(.*)$",RegexOptions.IgnoreCase);
             bool autoQuestion=ListFormat(p) is "decimal" or "decimalZero";
             if((q.Success&&!IsLetterList(p))||autoQuestion) {
                 InputSafety.Require(result.Count<InputSafety.MaxQuestions);current=new Question {Number=autoQuestion?(result.Count==0?1:result.Max(x=>x.Number)+1):int.Parse(q.Groups[1].Success?q.Groups[1].Value:q.Groups[2].Value),Text=autoQuestion?line:q.Groups[3].Value};result.Add(current);option=null;noteMode=false;answerMode=false;answerFinished=false;
-                bold[current.Number]=new HashSet<string>();highlighted[current.Number]=new HashSet<string>();inline[current]=new();reviewed[current]=new();Attach(p,"question");continue;
+                bold[current]=new HashSet<string>();highlighted[current]=new HashSet<string>();inline[current]=new();reviewed[current]=new();Attach(p,"question");continue;
             }
             if(current==null)continue;
             if(reviewed[current].Read(line)){Attach(p,"note");option=null;noteMode=false;answerMode=false;answerFinished=false;continue;}
@@ -149,14 +188,17 @@ public static class WordReader {
                 option=o.Success?o.Groups[1].Value.ToUpperInvariant():((char)('A'+current.Options.Count)).ToString();
                 option=QuestionReview.AddChoice(current,option,o.Success?o.Groups[2].Value:line);
                 if(string.IsNullOrWhiteSpace(current.Options[option])&&p.Descendants().Any(e=>e.Name.LocalName is "blip" or "imagedata" or "videoFile"))current.Options[option]="(Xem media)";
-                Attach(p,option);if(Bold(p))bold[current.Number].Add(option);if(Highlighted(p,option))highlighted[current.Number].Add(option);
-            } else if(option!=null){Attach(p,option);current.Options[option]+="\n"+line;if(Highlighted(p,option))highlighted[current.Number].Add(option);}
+                Attach(p,option);if(Bold(p))bold[current].Add(option);if(Highlighted(p,option))highlighted[current].Add(option);
+            } else if(option!=null){Attach(p,option);current.Options[option]+="\n"+line;if(Highlighted(p,option))highlighted[current].Add(option);}
             else {Attach(p,"question");current.Text+="\n"+line;}
         }
+        var repeated=result.GroupBy(q=>q.Number).Where(g=>g.Count()>1).Select(g=>g.Key).ToHashSet();
         foreach(var q in result) {
             if(string.IsNullOrWhiteSpace(q.Text)&&q.Media.Any(m=>m.Target=="question"))q.Text="Xem hình ảnh / video và chọn đáp án.";
-            if(bold[q.Number].Count==1)q.OriginalAnswer=bold[q.Number].Single();
-            if(tableKeys.TryGetValue(q.Number,out var rows)) {
+            if(bold[q].Count==1)q.OriginalAnswer=bold[q].Single();
+            if(tableKeys.ContainsKey(q.Number)&&repeated.Contains(q.Number)){
+                QuestionReview.Warn(q,"Số câu gốc bị trùng nên không thể ghép chắc chắn với bảng đáp án. Hãy xác nhận đáp án đúng.");
+            } else if(tableKeys.TryGetValue(q.Number,out var rows)) {
                 if(rows.Count>1)QuestionReview.Warn(q,"Có "+rows.Count+" dòng đáp án cho cùng câu trong bảng. Hãy kiểm tra và chọn lại đáp án.");
                 q.OriginalAnswer=string.Join("; ",rows.Select(r=>r.old).Where(s=>s!=""));
                 // A reviewed table intentionally supersedes the inline/original key.
@@ -169,11 +211,11 @@ public static class WordReader {
             } else if(inline[q].Count>0) {
                 QuestionReview.ApplyAnswerClaims(q,inline[q],"Dòng đáp án trong câu");
             } else {
-                var candidates=highlighted[q.Number].Union(bold[q.Number]).ToHashSet();
-                if(candidates.Count==1) {q.Answer=candidates.Single();q.AnswerSource=highlighted[q.Number].Count>0?"Lựa chọn được highlight/tô nền/tô màu chữ":"Lựa chọn in đậm";}
+                var candidates=highlighted[q].Union(bold[q]).ToHashSet();
+                if(candidates.Count==1) {q.Answer=candidates.Single();q.AnswerSource=highlighted[q].Count>0?"Lựa chọn được highlight/tô nền/tô màu chữ":"Lựa chọn in đậm";}
                 else {q.AnswerSource=candidates.Count>1?"Nhiều lựa chọn cùng định dạng — cần xác nhận":"Chưa tìm thấy đáp án";q.NeedsReview=true;}
             }
-            var marked=highlighted[q.Number].Union(bold[q.Number]).ToHashSet();
+            var marked=highlighted[q].Union(bold[q]).ToHashSet();
             if(marked.Count>1)QuestionReview.Warn(q,"Nhiều lựa chọn cùng được đánh dấu: "+string.Join(", ",marked.OrderBy(x=>x))+". Hãy xác nhận đáp án đúng.");
             else if(marked.Count==1&&q.Answer!=""&&!marked.Contains(q.Answer))
                 QuestionReview.Warn(q,"Đáp án được đánh dấu khác với đáp án ghi trong tài liệu. Hãy xác nhận đáp án đúng.");
@@ -186,7 +228,10 @@ public static class WordReader {
                 }
         }
         // Text-only documents may use a compact answer section; retain the established parser for those.
-        if(tableKeys.Count==0&&result.Any(q=>q.Options.Count<2)&&result.All(q=>q.Media.Count==0))return Reader.Parse(Reader.Read(path));
+        if(tableKeys.Count==0&&result.Any(q=>q.Options.Count<2)&&result.All(q=>q.Media.Count==0))return Reader.Parse(string.Join("\n",doc.Descendants(W+"p").Select(Plain)));
+        if(allowRepeatedNumbers&&repeated.Count>0)for(int i=0;i<result.Count;i++){
+            var q=result[i];if(q.Number!=i+1)q.Text=$"[Câu gốc {q.Number}]\n{q.Text}";q.Number=i+1;
+        }
         Importers.Validate(result);return result;
     }
 }

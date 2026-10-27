@@ -1,3 +1,11 @@
+# QuizDesk 5.16.4 — 27/10/2026
+
+- Tách tài liệu Word tổng hợp thành các bộ đề theo tiêu đề môn/phần; bỏ qua mục lục Word.
+- Ghép đáp án riêng từng môn trước khi lưu hoặc gộp; số câu trùng giữa các môn không ảnh hưởng nhau.
+- Giữ các câu bổ sung trùng số trong tài liệu nhiều môn, đánh số lại và ghi số gốc ở câu đổi số.
+- Hỗ trợ nhập một/nhiều file và gộp các môn; giữ cảnh báo cho đáp án chưa rõ hoặc lựa chọn trùng.
+- Đồng bộ version 5.16.4; Android versionCode 60109, iOS build 24.
+
 # QuizDesk 5.16.3 — 27/10/2026
 
 - Không cảnh báo rà soát khi Word có một đáp án được tô màu/highlight/in đậm rõ ràng.

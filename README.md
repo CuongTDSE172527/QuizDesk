@@ -1,4 +1,12 @@
-# QuizDesk 5.16.3 — Windows, macOS, Android và mã nguồn iOS
+# QuizDesk 5.16.4 — Windows, macOS, Android và mã nguồn iOS
+
+Word tổng hợp nhiều môn: khi nhập DOCX (hoặc DOC được chuyển đổi), ứng dụng bỏ qua
+mục lục Word và tạo một bộ đề cho mỗi tiêu đề môn/phần. Dùng Heading 1 cho tiêu đề môn
+để nhận diện ổn định; các tiêu đề bắt đầu bằng Môn, Phần, Chương cũng được hỗ trợ.
+Số câu được giữ riêng từng môn. Nếu có câu bổ sung trùng số trong tài liệu nhiều môn,
+app giữ đủ câu, ghép đáp án trước khi đánh số lại và ghi số gốc ở câu đổi số.
+Khi nhập nhiều file, chế độ gộp vẫn ghép đáp án riêng từng môn trước khi gộp.
+Nếu bảng đáp án dùng số câu trùng trong cùng môn, app yêu cầu xác nhận thay vì tự gán.
 
 [Tải bản cài / Releases](https://github.com/CuongTDSE172527/QuizDesk/releases/latest) · [Changelog](CHANGELOG.md)
 
@@ -537,8 +545,8 @@ trên PC/mobile, không cần cài Microsoft Office, LibreOffice, không gọi s
 - Không thêm định dạng cũ XLS/DOC trong đợt này. .quiz vẫn là bản sao lưu đầy đủ
   nhất cho media, cấu hình thi và thông tin cần rà soát của QuizDesk.
 
-Version hiển thị là **5.16.3**, Android versionCode **60108**, iOS build **23**.
-Chạy Actions với version/tag `v5.16.3`, hoặc để trống tag ở lượt chạy thủ công sau
+Version hiển thị là **5.16.4**, Android versionCode **60109**, iOS build **24**.
+Chạy Actions với version/tag `v5.16.4`, hoặc để trống tag ở lượt chạy thủ công sau
 khi commit/push source. Bộ đóng gói macOS tự đọc version từ project Desktop.
 
 ## Tự động build khi push

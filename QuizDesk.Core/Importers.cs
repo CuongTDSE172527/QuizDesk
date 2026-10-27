@@ -13,6 +13,20 @@ using UglyToad.PdfPig.DocumentLayoutAnalysis.TextExtractor;
 namespace QuizDesk;
 
 public static class Importers {
+    // Read each subject independently so repeated source numbers cannot share answer keys.
+    public static List<ImportedBank> LoadBanks(string path,string displayName=null){
+        displayName??=Path.GetFileName(path);
+        string ext=Path.GetExtension(path).ToLowerInvariant();
+        if(ext==".doc")return LegacyOffice.Convert(path,p=>LoadBanks(p,displayName));
+        if(ext==".docx"){
+            var sections=WordReader.ReadSections(path);
+            return sections.Select(s=>new ImportedBank(sections.Count>1?$"{displayName} — {s.Title}":displayName,
+                new WorkspaceBank {Title=sections.Count>1?s.Title:Path.GetFileNameWithoutExtension(displayName),Bank=s.Questions,
+                    Setup=new QuizSetup {Count=Math.Min(20,s.Questions.Count),Included=new(s.Questions.Select(q=>q.Number))}})).ToList();
+        }
+        var bank=Load(path,out var setup);
+        return new(){new(displayName,new WorkspaceBank {Title=Path.GetFileNameWithoutExtension(displayName),Bank=bank,Setup=setup})};
+    }
     public const string Filter="Tất cả định dạng đề|*.quiz;*.doc;*.docx;*.pdf;*.xls;*.xlsx;*.csv;*.tsv;*.json;*.txt;*.md;*.rtf;*.html;*.htm;*.odt|QuizDesk|*.quiz|Word|*.doc;*.docx|PDF có chữ|*.pdf|Excel|*.xls;*.xlsx|CSV / TSV|*.csv;*.tsv|JSON|*.json|Văn bản|*.txt;*.md;*.rtf;*.html;*.htm;*.odt";
     public static List<Question> Load(string path,out QuizSetup setup) {
         setup=null;
