@@ -67,12 +67,21 @@ public static class WordReader {
             string theme=(string)shading.Attribute(W+"themeFill"),fill=(string)shading.Attribute(W+"fill");
             return !string.IsNullOrEmpty(theme)&&theme!="background1"&&theme!="background2"||!string.IsNullOrEmpty(fill)&&!new[]{"auto","FFFFFF","ffffff","none"}.Contains(fill);
         }
+        bool Colored(XElement color){
+            if(color==null)return false;
+            string theme=(string)color.Attribute(W+"themeColor");
+            if(!string.IsNullOrEmpty(theme)&&theme!="none")return theme.StartsWith("accent",StringComparison.OrdinalIgnoreCase);
+            string rgb=(string)color.Attribute(W+"val");
+            // Automatic, black, white and neutral gray text are ordinary text colors.
+            return rgb!=null&&SafeRegex.IsMatch(rgb,@"^[0-9a-fA-F]{6}$")
+                &&!(rgb[..2].Equals(rgb[2..4],StringComparison.OrdinalIgnoreCase)&&rgb[..2].Equals(rgb[4..],StringComparison.OrdinalIgnoreCase));
+        }
         bool Highlighted(XElement paragraph,string label){
             string style=(string)paragraph.Element(W+"pPr")?.Element(W+"pStyle")?.Attribute(W+"val");
             if(Shaded(paragraph.Element(W+"pPr")?.Element(W+"shd")??StyleProp(style,"shd",true)))return true;
             bool Marked(XElement run){
                 string color=(string)RunProp(run,paragraph,"highlight")?.Attribute(W+"val");
-                return !string.IsNullOrEmpty(color)&&color!="none"||Shaded(RunProp(run,paragraph,"shd"));
+                return !string.IsNullOrEmpty(color)&&color!="none"||Shaded(RunProp(run,paragraph,"shd"))||Colored(RunProp(run,paragraph,"color"));
             }
             if(Ratio(paragraph,Marked)>=0.8)return true;
             // An intentionally highlighted A./B./… label is also a source marker.
@@ -161,7 +170,7 @@ public static class WordReader {
                 QuestionReview.ApplyAnswerClaims(q,inline[q],"Dòng đáp án trong câu");
             } else {
                 var candidates=highlighted[q.Number].Count>0?highlighted[q.Number]:bold[q.Number];
-                if(candidates.Count==1) {q.Answer=candidates.Single();q.AnswerSource=highlighted[q.Number].Count>0?"Lựa chọn được highlight/tô nền":"Lựa chọn in đậm";q.NeedsReview=true;}
+                if(candidates.Count==1) {q.Answer=candidates.Single();q.AnswerSource=highlighted[q.Number].Count>0?"Lựa chọn được highlight/tô nền/tô màu chữ":"Lựa chọn in đậm";q.NeedsReview=true;}
                 else {q.AnswerSource=candidates.Count>1?"Nhiều lựa chọn cùng định dạng — cần xác nhận":"Chưa tìm thấy đáp án";q.NeedsReview=true;}
             }
         }

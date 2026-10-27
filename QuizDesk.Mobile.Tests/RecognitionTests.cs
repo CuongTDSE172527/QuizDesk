@@ -2,11 +2,28 @@ using QuizDesk;
 using System.IO.Compression;
 using System.Xml.Linq;
 partial class Tests {
+    static void FontColorFileChecks(string path){
+        XNamespace w="http://schemas.openxmlformats.org/wordprocessingml/2006/main";
+        using var zip=ZipFile.OpenRead(path);using var stream=zip.GetEntry("word/document.xml").Open();
+        var doc=XDocument.Load(stream);var expected=new Dictionary<int,HashSet<string>>();int number=0;
+        foreach(var p in doc.Descendants(w+"p")){
+            string text=string.Concat(p.Descendants(w+"t").Select(t=>t.Value)).Trim();
+            var question=System.Text.RegularExpressions.Regex.Match(text,@"^Câu\s+(\d+)");
+            if(question.Success){number=int.Parse(question.Groups[1].Value);expected[number]=new();continue;}
+            var option=System.Text.RegularExpressions.Regex.Match(text,@"^([a-hA-H])[.)]");
+            if(number>0&&option.Success&&p.Descendants(w+"r").Any(r=>r.Element(w+"rPr")?.Element(w+"color")?.Attribute(w+"val")?.Value=="EE0000"))expected[number].Add(option.Groups[1].Value.ToUpperInvariant());
+        }
+        var bank=Importers.Load(path,out _);
+        Check(bank.Count==expected.Count,"Supplied document question count preserved");
+        foreach(var q in bank.Where(q=>expected[q.Number].Count==1))Check(q.Answer==expected[q.Number].Single(),"Supplied red answer: "+q.Number);
+        Console.WriteLine($"Imported {bank.Count} questions; {bank.Count(q=>q.Answer!="")} answers recognized; {expected.Count(e=>e.Value.Count==1)} unique red answers.");
+    }
     static void RecognitionChecks(string folder,string mon15){
         Directory.CreateDirectory(folder);XNamespace w="http://schemas.openxmlformats.org/wordprocessingml/2006/main";int serial=0;
         XElement Run(string text,params XElement[] props)=>new(w+"r",new XElement(w+"rPr",props),new XElement(w+"t",text));
         XElement P(string text,params XElement[] props)=>new(w+"p",Run(text,props));
         XElement Highlight(string color)=>new(w+"highlight",new XAttribute(w+"val",color));
+        XElement Color(string color)=>new(w+"color",new XAttribute(w+"val",color));
         XElement Shading(string color)=>new(w+"shd",new XAttribute(w+"fill",color));
         Question Word(IEnumerable<XElement> paragraphs,XElement styles=null){
             string path=Path.Combine(folder,"doc-"+serial+++".docx");using(var zip=ZipFile.Open(path,ZipArchiveMode.Create)){
@@ -15,6 +32,23 @@ partial class Tests {
             }return Importers.Load(path,out _).Single();
         }
         XElement[] Base(XElement a,XElement b,params XElement[] tail)=>new[]{P("Câu 1. Chọn?"),a,b}.Concat(tail).ToArray();
+        foreach(string color in new[]{"EE0000","ff0000","0070C0","00B050"}){
+            var q=Word(Base(P("A. Trà"),P("b. Cà phê",Color(color))));
+            Check(q.Answer=="B"&&q.NeedsReview&&q.AnswerSource.Contains("màu chữ"),"Font color recognized: "+color);
+        }
+        foreach(string color in new[]{"auto","000000","FFFFFF","808080","invalid"})
+            Check(Word(Base(P("A. Trà"),P("B. Cà phê",Color(color)))).Answer=="","Ordinary font color ignored: "+color);
+        Check(Word(Base(P("A. Trà",Color("EE0000")),P("B. Cà phê",Color("0070C0")))).Answer=="","Multiple colored answers remain ambiguous");
+        Check(Word(Base(P("A. Trà",Highlight("yellow")),P("B. Cà phê",Color("EE0000")))).Answer=="","Conflicting font and background cues remain ambiguous");
+        Check(Word(Base(P("A. Trà"),new XElement(w+"p",Run("b.",Color("EE0000")),Run(" Cà phê")))).Answer=="B","Colored label alone recognized");
+        Check(Word(Base(P("A. Trà"),new XElement(w+"p",Run("B. Cà phê rất "),Run("ngon",Color("EE0000"))))).Answer=="","Colored keyword alone ignored");
+        Check(Word(Base(P("A. Trà",Color("EE0000")),P("B. Cà phê"),P("Đáp án: B"))).Answer=="B","Explicit answer overrides font color");
+        var colorStyles=new XElement(w+"styles",new XElement(w+"style",new XAttribute(w+"styleId","Red"),new XElement(w+"rPr",Color("EE0000"))),new XElement(w+"style",new XAttribute(w+"styleId","RedChild"),new XElement(w+"basedOn",new XAttribute(w+"val","Red"))));
+        XElement ColorStyle()=>new(w+"rStyle",new XAttribute(w+"val","RedChild"));
+        Check(Word(Base(P("A. Trà"),P("B. Cà phê",ColorStyle())),colorStyles).Answer=="B","Inherited font color recognized");
+        Check(Word(Base(P("A. Trà"),P("B. Cà phê",ColorStyle(),Color("auto"))),colorStyles).Answer=="","Direct auto overrides inherited font color");
+        Check(Word(Base(P("A. Trà"),P("B. Cà phê",new XElement(w+"color",new XAttribute(w+"themeColor","accent1"))))).Answer=="B","Accent theme font color recognized");
+        Check(Word(Base(P("A. Trà"),P("B. Cà phê",new XElement(w+"color",new XAttribute(w+"themeColor","text1"),new XAttribute(w+"val","EE0000"))))).Answer=="","Normal theme text overrides cached RGB");
         foreach(string color in new[]{"yellow","cyan","magenta","red","blue","green","darkBlue","darkCyan","darkGreen","darkMagenta","darkRed","darkYellow","darkGray","lightGray","black"}){
             var q=Word(Base(P("A. Trà"),P("B. Cà phê",Highlight(color))));Check(q.Answer=="B"&&q.NeedsReview&&q.AnswerSource.Contains("highlight"),"Unique highlight: "+color);
         }
