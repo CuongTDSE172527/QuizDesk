@@ -95,8 +95,8 @@ public partial class MainView {
         if(aeroTopLevel==null||updatingAero)return;
         updatingAero=true;
         try {
-            bool enabled=preferences.AeroGlass;
-            ApplyGlassTuning();
+            bool enabled=preferences.AeroGlass&&!preferences.PerformanceMode;
+            if(enabled)ApplyGlassTuning();
             bool desktopNative=MobilePlatform.DesktopHost&&(OperatingSystem.IsWindows()||OperatingSystem.IsMacOS());
             if(aeroWindow!=null){
                 aeroWindow.TransparencyBackgroundFallback=new SolidColorBrush(Color.Parse(aeroTopLevel.ActualThemeVariant==ThemeVariant.Dark?"#131720":"#F6F7FB"));

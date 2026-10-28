@@ -24,17 +24,17 @@ public class QuizSetup {
         var pool=bank.Where(q=>setup.Included.Contains(q.Number)).ToList();
         if(pool.Count==0) throw new Exception("Hãy chọn ít nhất một câu.");
         if(!practice && setup.Count>pool.Count) throw new Exception("Số câu thi lớn hơn số câu đã chọn.");
-        if(setup.ShuffleQuestions) pool=pool.OrderBy(q=>rng.Next()).ToList();
+        if(setup.ShuffleQuestions)rng.Shuffle(System.Runtime.InteropServices.CollectionsMarshal.AsSpan(pool));
         return pool.Take(practice?pool.Count:setup.Count).Select(q=>{
             var copy=new Question {Number=q.Number,Text=q.Text,Note=q.Note,OriginalAnswer=q.OriginalAnswer,AnswerSource=q.AnswerSource,NeedsReview=q.NeedsReview,ImportWarnings=new(q.ImportWarnings??new())};
             string scoringAnswer=QuestionReview.ScoringAnswer(q);
-            copy.Media=q.Media.Where(m=>m.Target=="question"||m.Target=="note").Select(m=>m.Clone()).ToList();
+            if(q.Media.Count>0)copy.Media=q.Media.Where(m=>m.Target=="question"||m.Target=="note").Select(m=>m.Clone()).ToList();
             var options=q.Options.ToList();
-            if(setup.ShuffleOptions) options=options.OrderBy(o=>rng.Next()).ToList();
+            if(setup.ShuffleOptions)rng.Shuffle(System.Runtime.InteropServices.CollectionsMarshal.AsSpan(options));
             for(int i=0;i<options.Count;i++) {
                 string key=setup.ShuffleOptions?((char)('A'+i)).ToString():options[i].Key;
                 copy.Options[key]=options[i].Value;
-                copy.Media.AddRange(q.Media.Where(m=>m.Target==options[i].Key).Select(m=>m.Clone(key)));
+                if(q.Media.Count>0)copy.Media.AddRange(q.Media.Where(m=>m.Target==options[i].Key).Select(m=>m.Clone(key)));
                 if(options[i].Key==scoringAnswer) copy.Answer=key;
             }
             return copy;

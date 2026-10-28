@@ -13,7 +13,14 @@ public partial class MainView {
         bool compact=Bounds.Width<600;
         headerDateTime.Width=compact?84:190;
         if(brandName!=null)brandName.IsVisible=Bounds.Width<=0||Bounds.Width>=380;
-        string text=DateTimeOffset.Now.ToString(compact?"dd/MM/yyyy\nHH:mm:ss":"dd/MM/yyyy · HH:mm:ss",CultureInfo.InvariantCulture);
+        var now=DateTimeOffset.Now;
+        headerDateTimeTimer.Interval=preferences.PerformanceMode
+            ?TimeSpan.FromMilliseconds(Math.Max(50,60000-now.Second*1000-now.Millisecond))
+            :TimeSpan.FromSeconds(1);
+        string format=preferences.PerformanceMode
+            ?compact?"dd/MM/yyyy\nHH:mm":"dd/MM/yyyy · HH:mm"
+            :compact?"dd/MM/yyyy\nHH:mm:ss":"dd/MM/yyyy · HH:mm:ss";
+        string text=now.ToString(format,CultureInfo.InvariantCulture);
         if(headerDateTime.Text!=text)headerDateTime.Text=text;
     }
 }

@@ -1,3 +1,24 @@
+# QuizDesk 5.17.0 — 28/10/2026
+
+- Tối ưu snapshot thư viện bằng deep copy trực tiếp thay cho vòng JSON/base64;
+  giữ tách biệt câu hỏi, lựa chọn, media và cấu hình, giảm dữ liệu trung gian.
+- Cache thông tin tóm tắt thư viện, tự làm mới khi lưu/xóa hoặc file thay đổi;
+  mở bộ đề vẫn đọc và kiểm tra dữ liệu đầy đủ.
+- Trộn câu hỏi/lựa chọn bằng shuffle tuyến tính, giữ liên kết đáp án/media và seed.
+- Giải mã khung ảnh đầu tiên ngoài luồng giao diện; chế độ thường dùng tối đa
+  min(4, max(1, số lõi khả dụng − 1)) tác vụ. Performance Mode giới hạn 1 tác vụ mới.
+- Tối ưu sao chép pixel bằng buffer trực tiếp có kiểm tra kích thước, bỏ bộ đệm
+  managed mỗi frame; cache metadata GIF. Giữ nguyên chất lượng, play/pause và thời lượng GIF.
+- Lưu bộ đề mới nhập ở luồng nền. Lưu đáp án/checkpoint vẫn ghi an toàn như trước.
+
+- Thêm Performance Mode trong Cài đặt cho thiết bị cấu hình yếu, tự lưu và khôi phục khi mở lại app.
+- Khi bật: tạm tắt kính/blur/nền kính và chuyển động giao diện; đồng hồ header hiển thị
+  giờ/phút và cập nhật theo ranh giới phút để giảm số lần cập nhật giao diện.
+- Giữ nguyên cấu hình kính, slider và Giảm chuyển động; tắt Performance Mode để khôi phục.
+  Các điều khiển giao diện bị ghi đè được vô hiệu hóa trong lúc bật chế độ.
+- Đồng hồ thi vẫn cập nhật mỗi giây; lưu bài/đáp án, lịch sử và media học tập giữ nguyên.
+- Đồng bộ version 5.17.0; Android versionCode 60114, iOS build 29.
+
 # QuizDesk 5.16.8 — 28/10/2026
 
 - Sửa lỗi ký hiệu như µ bị mất khi nhập Word: 12µs/50µs không còn thành 12s/50s.

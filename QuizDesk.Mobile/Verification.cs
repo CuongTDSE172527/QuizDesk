@@ -29,6 +29,8 @@ public partial class MainView {
             if(phase=="recognition"){File.WriteAllText(result,await VerifyRecognition());return;}
             if(phase.StartsWith("merge")){File.WriteAllText(result,await VerifyMerge(phase));return;}
             if(phase=="media"){File.WriteAllText(result,await VerifyMedia());return;}
+            if(phase=="render-copy"){File.WriteAllText(result,await VerifyRenderCopy());return;}
+            if(phase.StartsWith("performance-mode")){File.WriteAllText(result,await VerifyPerformanceMode(phase));return;}
             if(phase=="performance"){File.WriteAllText(result,await VerifyPerformance());return;}
             if(phase=="edit-position"){File.WriteAllText(result,await VerifyEditPosition());return;}
             if(phase=="study"||phase=="study-restart"){File.WriteAllText(result,await VerifyStudy(phase));return;}

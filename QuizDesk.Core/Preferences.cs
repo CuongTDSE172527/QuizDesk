@@ -14,6 +14,7 @@ public class AppPreferences {
     public bool ShuffleQuestions {get;set;}=true;
     public bool ShuffleOptions {get;set;}=false;
     public bool ReducedMotion {get;set;}=false;
+    public bool PerformanceMode {get;set;}=false;
     public bool AeroGlass {get;set;}=true;
     public int GlassBrightness {get;set;}=0;
     public int GlassTransparency {get;set;}=50;

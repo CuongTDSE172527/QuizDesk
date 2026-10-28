@@ -1,4 +1,4 @@
-# QuizDesk 5.16.8 — Windows, macOS, Android và mã nguồn iOS
+# QuizDesk 5.17.0 — Windows, macOS, Android và mã nguồn iOS
 
 Word tổng hợp nhiều môn: khi nhập DOCX (hoặc DOC được chuyển đổi), ứng dụng bỏ qua
 mục lục Word và tạo một bộ đề cho mỗi tiêu đề môn/phần. Dùng Heading 1 cho tiêu đề môn
@@ -545,8 +545,8 @@ trên PC/mobile, không cần cài Microsoft Office, LibreOffice, không gọi s
 - Không thêm định dạng cũ XLS/DOC trong đợt này. .quiz vẫn là bản sao lưu đầy đủ
   nhất cho media, cấu hình thi và thông tin cần rà soát của QuizDesk.
 
-Version hiển thị là **5.16.8**, Android versionCode **60113**, iOS build **28**.
-Chạy Actions với version/tag `v5.16.8`, hoặc để trống tag ở lượt chạy thủ công sau
+Version hiển thị là **5.17.0**, Android versionCode **60114**, iOS build **29**.
+Chạy Actions với version/tag `v5.17.0`, hoặc để trống tag ở lượt chạy thủ công sau
 khi commit/push source. Bộ đóng gói macOS tự đọc version từ project Desktop.
 
 ## Tự động build khi push
@@ -594,3 +594,31 @@ hoặc run font Symbol được chuyển sang chữ Unicode khi nhập, ví dụ
 
 Nếu bộ đề đã nhập trước bản sửa có chữ `12s` thay vì `12µs`, nhập lại file Word gốc.
 Bắt đầu lượt flashcards mới để dùng nội dung đã sửa; lượt học cũ giữ snapshot cũ.
+
+### Performance Mode
+
+Vào **Cài đặt → Performance Mode** để giảm tải đồ họa trên thiết bị cấu hình yếu.
+Chế độ này tạm tắt kính/blur và animation, dùng nền đặc, đồng thời cho đồng hồ ở
+header chỉ hiển thị giờ/phút và cập nhật mỗi phút. Bộ đếm giờ thi vẫn chạy mỗi giây;
+việc lưu câu trả lời, lịch sử, nhập đề và media học tập giữ nguyên.
+
+App nhớ trạng thái sau khi mở lại. Khi bật, các tùy chọn kính và Giảm chuyển động
+được vô hiệu hóa nhưng giá trị gốc không bị thay đổi. Tắt Performance Mode để
+khôi phục giao diện cũ. Tính năng dùng chung trên các port; không thay đổi chế độ
+nguồn điện của hệ điều hành hoặc ép tắt tăng tốc đồ họa.
+
+### Tối ưu xử lý trong 5.17
+
+Chế độ thường tận dụng renderer mặc định của Avalonia và các worker giải mã ảnh nền,
+chọn số worker theo số lõi khả dụng và giới hạn tối đa 4 để giữ tài nguyên cho giao diện.
+Performance Mode giới hạn tác vụ giải mã ảnh mới xuống 1; tác vụ đang chạy hoàn thành
+và giải phóng bộ nhớ bình thường. Không ép CPU/RAM lên 100% hoặc đổi power plan hệ điều hành.
+
+Snapshot thư viện được deep copy trực tiếp; danh sách thư viện cache metadata theo dấu
+thời gian/kích thước file, không cache toàn bộ nội dung media. Mở bộ đề vẫn đọc và kiểm tra
+file thật. Shuffle tuyến tính và copy pixel trực tiếp giảm thao tác/cấp phát không cần thiết.
+Khung ảnh đầu tiên được giải mã ở worker, metadata GIF đọc một lần; chất lượng ảnh và
+cách phát media giữ nguyên. Các bước lưu đáp án/checkpoint vẫn giữ độ bền dữ liệu.
+
+Các phép đo chi tiết và giới hạn nằm trong `Validation/5.17.0-OPTIMIZATION.md`;
+kết quả máy phát triển không phải cam kết tốc độ trên mọi thiết bị.

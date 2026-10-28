@@ -13,9 +13,9 @@ public partial class MainView {
     // Content and persistence always update synchronously. These compositor transitions never defer an action.
     void Animate(Control target,int milliseconds=140,bool flip=false) {
         target.Transitions=null;
-        target.Opacity=preferences.ReducedMotion?1:0.78;
-        target.RenderTransform=preferences.ReducedMotion?RestTransform:TransformOperations.Parse(flip?"translate(0px, 0px) scale(0.96, 1)":"translate(0px, 6px) scale(1, 1)");
-        if(preferences.ReducedMotion)return;
+        target.Opacity=ReduceVisualMotion?1:0.78;
+        target.RenderTransform=ReduceVisualMotion?RestTransform:TransformOperations.Parse(flip?"translate(0px, 0px) scale(0.96, 1)":"translate(0px, 6px) scale(1, 1)");
+        if(ReduceVisualMotion)return;
         target.Transitions=new Transitions {
             new DoubleTransition {Property=Visual.OpacityProperty,Duration=TimeSpan.FromMilliseconds(milliseconds),Easing=new CubicEaseOut()},
             new TransformOperationsTransition {Property=Visual.RenderTransformProperty,Duration=TimeSpan.FromMilliseconds(milliseconds),Easing=new CubicEaseOut()}

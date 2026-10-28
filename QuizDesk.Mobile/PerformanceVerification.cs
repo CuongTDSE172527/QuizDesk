@@ -13,7 +13,7 @@ public partial class MainView {
         watch.Restart();for(int i=0;i<100;i++){MoveToQuestion((i*7)%exam.Count);ChooseAnswer("A");}watch.Stop();
         Check(ReferenceEquals(heading,questionText)&&buttons.All(p=>ReferenceEquals(p.Value,answerButtons[p.Key])),"Performance path rebuilt answer controls");
         var saved=workspace.LoadActive(out string warning);Check(warning==""&&saved.Index==index&&saved.Answers.Count==answers.Count,"Optimized interaction lost persisted state");
-        var result=new {Questions=1000,JumpControls=jumpButtons.Count,StartAndLayoutMs=start,Interaction100Ms=watch.Elapsed.TotalMilliseconds,AllocatedMiB=(GC.GetTotalAllocatedBytes(true)-memory)/1048576.0};
+        var result=new {PerformanceMode=preferences.PerformanceMode,Questions=1000,JumpControls=jumpButtons.Count,StartAndLayoutMs=start,Interaction100Ms=watch.Elapsed.TotalMilliseconds,AllocatedMiB=(GC.GetTotalAllocatedBytes(true)-memory)/1048576.0};
         File.WriteAllText(Path.Combine(dataRoot,"performance.json"),JsonSerializer.Serialize(result,new JsonSerializerOptions {WriteIndented=true}));
         timer.Stop();active=false;await Task.Delay(180);
         return "PASS 1,000-question benchmark; 100 persisted moves/answers; stable answer controls and restored final state. Host measurements only; see performance.json.";

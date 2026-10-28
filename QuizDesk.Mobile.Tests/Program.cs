@@ -12,6 +12,7 @@ partial class Tests {
         if(args[0]=="--media"){MediaChecks(args[1],args.Length>2?args[2]:null);return;}
         if(args[0]=="--batch-import"){BatchImportChecks(args[1]);return;}
         if(args[0]=="--merge"){MergeChecks(args[1]);return;}
+        if(args[0]=="--snapshot-isolation"){SnapshotIsolationChecks(args[1]);return;}
         if(args[0]=="--word-symbols"){WordSymbolChecks(args[1],args.Length>2?args[2]:null);return;}
         if(args[0]=="--word-sections"){WordSectionChecks(args[1],args.Length>2?args[2]:null);return;}
         if(args[0]=="--font-color-file"){FontColorFileChecks(args[1]);return;}
@@ -89,19 +90,23 @@ partial class Tests {
         Check(settings.AeroGlass,"Missing settings enables desktop Aero preference by default");
         Check(settings.GlassBrightness==0&&settings.GlassTransparency==50,"Legacy/default settings preserve the original glass appearance");
         settings.GlassBrightness=-23;settings.GlassTransparency=85;
+        Check(!settings.PerformanceMode,"Legacy settings leave Performance Mode off by default");
+        settings.PerformanceMode=true;
         settings.AeroGlass=false;
         settings.Theme="dark";settings.QuestionCount=17;settings.Minutes=42;settings.ShuffleQuestions=false;settings.ShuffleOptions=true;store.Save(settings);
         var restored=new PreferencesStore(path).Load(out warning);
         Check(warning==""&&restored.Theme=="dark"&&restored.QuestionCount==17&&restored.Minutes==42&&!restored.ShuffleQuestions&&restored.ShuffleOptions,"New settings store restores all preferences");
+        Check(restored.PerformanceMode,"Performance Mode survives preferences reload");
         Check(!restored.AeroGlass,"Disabled Aero preference survives a settings reload");
         Check(restored.GlassBrightness==-23&&restored.GlassTransparency==85,"Both glass slider values survive a settings reload");
         settings.AeroGlass=true;store.Save(settings);Check(store.Load(out warning).AeroGlass,"Aero preference can be re-enabled and persisted");
+        settings.PerformanceMode=false;store.Save(settings);Check(!store.Load(out warning).PerformanceMode&&store.Load(out warning).AeroGlass&&store.Load(out warning).GlassBrightness==-23&&store.Load(out warning).GlassTransparency==85,"Disabling Performance Mode preserves glass tuning");
         settings.Theme="light";store.Save(settings);Check(File.ReadAllText(path+".bak").Contains("dark"),"Atomic save preserves previous settings backup");
         Check(!Directory.EnumerateFiles(folder,"*.tmp").Any(),"Atomic save leaves no incomplete temporary files");
         File.WriteAllText(path,"{broken");restored=store.Load(out warning);Check(warning!=""&&restored.Theme=="light","Corrupt settings does not crash startup");
         store.Save(settings);Check(File.ReadAllText(path+".bak")=="{broken","Corrupt file retained in backup when replaced");
         File.WriteAllText(path,"{\"Version\":99}");restored=store.Load(out warning);Check(warning!=""&&restored.QuestionCount==20,"Unsupported settings version falls back safely");
-        File.WriteAllText(path,"{\"Theme\":\"system\"}");restored=store.Load(out warning);Check(warning==""&&restored.Theme=="system"&&restored.QuestionCount==20&&restored.AeroGlass&&restored.GlassBrightness==0&&restored.GlassTransparency==50,"Partial settings retain defaults for new fields");
+        File.WriteAllText(path,"{\"Theme\":\"system\"}");restored=store.Load(out warning);Check(warning==""&&restored.Theme=="system"&&restored.QuestionCount==20&&restored.AeroGlass&&restored.GlassBrightness==0&&restored.GlassTransparency==50&&!restored.PerformanceMode,"Partial settings retain defaults for new fields");
         File.WriteAllText(path,"{\"Theme\":\"invalid\",\"QuestionCount\":-5,\"Minutes\":900}");restored=store.Load(out warning);Check(restored.Theme=="light"&&restored.QuestionCount==1&&restored.Minutes==300,"Out-of-range settings are normalized");
         File.WriteAllText(path,"{\"GlassBrightness\":-900,\"GlassTransparency\":900}");restored=store.Load(out warning);
         Check(warning==""&&restored.GlassBrightness==-50&&restored.GlassTransparency==100,"Out-of-range glass slider values are safely clamped");

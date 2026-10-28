@@ -35,9 +35,29 @@ public sealed class MobileBankLibrary {
     static readonly JsonSerializerOptions Json=new() {IncludeFields=true};
     static readonly Guid LegacyId=new("9ba50c90-cf67-49d2-988b-a4b761af1aba");
     readonly string folder;
+    sealed record SummaryCacheEntry(long Length,DateTime Written,DateTime Created,LibraryBankSummary Summary);
+    readonly System.Collections.Concurrent.ConcurrentDictionary<Guid,SummaryCacheEntry> summaries=new();
     public MobileBankLibrary(string folder)=>this.folder=Path.GetFullPath(folder);
     string FileName(Guid id) {if(id==Guid.Empty)throw new InvalidDataException("Mã bộ đề không hợp lệ.");return Path.Combine(folder,id.ToString("N")+".json");}
-    static WorkspaceBank Clone(WorkspaceBank bank)=>JsonSerializer.Deserialize<WorkspaceBank>(JsonSerializer.Serialize(bank,Json),Json);
+    // Preserve snapshot isolation without building a large temporary JSON/base64 string.
+    static WorkspaceBank Clone(WorkspaceBank bank)=>bank==null?null:new() {
+        LibraryBankId=bank.LibraryBankId,Version=bank.Version,Title=bank.Title,
+        HasUnexportedChanges=bank.HasUnexportedChanges,
+        Setup=bank.Setup==null?null:new QuizSetup {
+            Count=bank.Setup.Count,Minutes=bank.Setup.Minutes,
+            ShuffleQuestions=bank.Setup.ShuffleQuestions,ShuffleOptions=bank.Setup.ShuffleOptions,
+            Included=bank.Setup.Included==null?null:new(bank.Setup.Included)
+        },
+        Bank=bank.Bank?.Select(q=>q==null?null:new Question {
+            Number=q.Number,Text=q.Text,Note=q.Note,Answer=q.Answer,
+            OriginalAnswer=q.OriginalAnswer,AnswerSource=q.AnswerSource,NeedsReview=q.NeedsReview,
+            Options=q.Options==null?null:new(q.Options,StringComparer.Ordinal),
+            ImportWarnings=q.ImportWarnings==null?null:new(q.ImportWarnings),
+            Media=q.Media?.Select(m=>m==null?null:new QuestionMedia {
+                Name=m.Name,Mime=m.Mime,Target=m.Target,Data=m.Data?.ToArray()
+            }).ToList()
+        }).ToList()
+    };
     static void Validate(WorkspaceBank bank) {
         if(bank==null||bank.Version!=1||bank.Bank==null||bank.Setup==null||string.IsNullOrWhiteSpace(bank.Title))throw new InvalidDataException("Dữ liệu bộ đề không hợp lệ.");
         if(bank.Bank.Any(q=>q==null||q.Options==null||q.Answer==null||q.Note==null))throw new InvalidDataException("Nội dung câu hỏi không hợp lệ.");
@@ -47,7 +67,7 @@ public sealed class MobileBankLibrary {
     }
     void Write(LibraryBank bank) {
         Directory.CreateDirectory(folder);string path=FileName(bank.Id),temp=path+".tmp";
-        try {using(var stream=new FileStream(temp,FileMode.Create,FileAccess.Write,FileShare.None)){JsonSerializer.Serialize(stream,bank,Json);stream.Flush(true);}File.Move(temp,path,true);}
+        try {using(var stream=new FileStream(temp,FileMode.Create,FileAccess.Write,FileShare.None)){JsonSerializer.Serialize(stream,bank,Json);stream.Flush(true);}File.Move(temp,path,true);summaries.TryRemove(bank.Id,out _);}
         finally{if(File.Exists(temp))File.Delete(temp);}
     }
     public LibraryBank Load(Guid id) {
@@ -56,13 +76,23 @@ public sealed class MobileBankLibrary {
         Validate(bank.Content);bank.Content.LibraryBankId=id;return bank;
     }
     public List<LibraryBankSummary> List(out string warning,bool includeDeleted=false) {
-        warning="";var items=new List<LibraryBankSummary>();if(!Directory.Exists(folder))return items;
-        var failures=new List<string>();
+        warning="";var items=new List<LibraryBankSummary>();if(!Directory.Exists(folder)){summaries.Clear();return items;}
+        var failures=new List<string>();var seen=new HashSet<Guid>();
         foreach(string file in Directory.EnumerateFiles(folder,"*.json")) {
             if(!Guid.TryParseExact(Path.GetFileNameWithoutExtension(file),"N",out var id))continue;
-            try {var bank=Load(id);if(!includeDeleted&&bank.DeletedAt.HasValue)continue;items.Add(new(id,bank.Content.Title,bank.DeletedAt.HasValue?bank.DeletedQuestionCount:bank.Content.Bank.Count,bank.CreatedAt,bank.ImportedAt,bank.UpdatedAt,bank.SourceName,bank.DeletedAt));}
+            seen.Add(id);
+            try {
+                var info=new FileInfo(file);
+                if(!summaries.TryGetValue(id,out var cached)||cached.Length!=info.Length||cached.Written!=info.LastWriteTimeUtc||cached.Created!=info.CreationTimeUtc){
+                    var bank=Load(id);
+                    var summary=new LibraryBankSummary(id,bank.Content.Title,bank.DeletedAt.HasValue?bank.DeletedQuestionCount:bank.Content.Bank.Count,bank.CreatedAt,bank.ImportedAt,bank.UpdatedAt,bank.SourceName,bank.DeletedAt);
+                    cached=new(info.Length,info.LastWriteTimeUtc,info.CreationTimeUtc,summary);summaries[id]=cached;
+                }
+                if(includeDeleted||!cached.Summary.DeletedAt.HasValue)items.Add(cached.Summary);
+            }
             catch(Exception ex) when(ex is IOException||ex is InvalidDataException||ex is UnauthorizedAccessException||ex is JsonException){failures.Add(Path.GetFileName(file));}
         }
+        foreach(var id in summaries.Keys)if(!seen.Contains(id))summaries.TryRemove(id,out _);
         if(failures.Count>0)warning=$"Không đọc được {failures.Count} bộ đề. File gốc vẫn được giữ nguyên.";
         return items.OrderByDescending(b=>b.UpdatedAt).ThenBy(b=>b.Id).ToList();
     }

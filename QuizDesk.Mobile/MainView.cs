@@ -184,7 +184,7 @@ public partial class MainView : UserControl {
             LibraryBank document=null;
             foreach(var imported in imports){
                 if(!Path.GetExtension(path).Equals(".quiz",StringComparison.OrdinalIgnoreCase))imported.Content.Setup=preferences.CreateSetup(imported.Content.Bank);
-                var saved=library.Create(imported.Content,imported.SourceName,true);document??=saved;
+                var saved=await Task.Run(()=>library.Create(imported.Content,imported.SourceName,true));document??=saved;
             }
             AdoptBank(document);selectingBanks=false;selectedBanks.Clear();RememberSelectedBank();expandedBankId=null;Navigate("bank");
             var all=imports.SelectMany(i=>i.Content.Bank).ToList();
@@ -279,8 +279,9 @@ public partial class MainView : UserControl {
         var theme=new ComboBox {ItemsSource=new[]{"Sáng","Tối","Theo hệ thống"},SelectedIndex=preferences.Theme=="dark"?1:preferences.Theme=="system"?2:0,HorizontalAlignment=HorizontalAlignment.Stretch};
         theme.SelectionChanged+=(_,_)=>{preferences.Theme=theme.SelectedIndex==1?"dark":theme.SelectedIndex==2?"system":"light";ApplyTheme();SavePreferences();};
         page.Children.Add(Card(Field("Giao diện",theme)));
-        page.Children.Add(GlassSettings());
-        var motion=new ToggleSwitch {Content="Giảm chuyển động",IsChecked=preferences.ReducedMotion};
+        page.Children.Add(PerformanceSettings());
+        glassSettingsPanel=GlassSettings();glassSettingsPanel.IsEnabled=!preferences.PerformanceMode;page.Children.Add(glassSettingsPanel);
+        var motion=motionSetting=new ToggleSwitch {Content="Giảm chuyển động",IsChecked=preferences.ReducedMotion,IsEnabled=!preferences.PerformanceMode};
         motion.IsCheckedChanged+=(_,_)=>{preferences.ReducedMotion=motion.IsChecked==true;StopMotion(page);SavePreferences();};
         page.Children.Add(Card(Stack(motion,Supporting("Chuyển tiếp nhanh 90–140 ms. Bật để hiển thị nội dung tức thì."))));
         var count=Number(preferences.QuestionCount,5000);var minutes=Number(preferences.Minutes,300);
