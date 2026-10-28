@@ -12,6 +12,7 @@ partial class Tests {
         if(args[0]=="--media"){MediaChecks(args[1],args.Length>2?args[2]:null);return;}
         if(args[0]=="--batch-import"){BatchImportChecks(args[1]);return;}
         if(args[0]=="--merge"){MergeChecks(args[1]);return;}
+        if(args[0]=="--word-symbols"){WordSymbolChecks(args[1],args.Length>2?args[2]:null);return;}
         if(args[0]=="--word-sections"){WordSectionChecks(args[1],args.Length>2?args[2]:null);return;}
         if(args[0]=="--font-color-file"){FontColorFileChecks(args[1]);return;}
         if(args[0]=="--recognition"){RecognitionChecks(args[1],args.Length>2?args[2]:null);return;}

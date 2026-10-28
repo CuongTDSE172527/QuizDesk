@@ -1,3 +1,14 @@
+# QuizDesk 5.16.8 — 28/10/2026
+
+- Sửa lỗi ký hiệu như µ bị mất khi nhập Word: 12µs/50µs không còn thành 12s/50s.
+- Đọc w:sym/font Symbol sang Unicode, gồm µ, ±, τ, °, ×, ÷, ≤, ≥, √, ∑ và ký hiệu thông dụng;
+  hỗ trợ cả run chữ mã hóa bằng Symbol, giữ nguyên chữ Unicode có sẵn.
+- Ký hiệu/font chưa hỗ trợ được giữ bằng nhãn để rà soát thay vì bị xóa âm thầm.
+- Giữ ký hiệu trong câu hỏi/lựa chọn/giải thích, nội dung flashcards và file .quiz.
+- Đề đã nhập cần nhập lại từ file gốc; lượt flashcards đã lưu cần bắt đầu lượt mới
+  vì nội dung snapshot cũ không thể tự khôi phục các ký hiệu đã mất.
+- Đồng bộ version 5.16.8; Android versionCode 60113, iOS build 28.
+
 # QuizDesk 5.16.7 — 27/10/2026
 
 - Thêm hai slider trong Cài đặt → Phong cách kính: độ sáng (-50% đến +50%) và

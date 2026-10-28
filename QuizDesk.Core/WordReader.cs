@@ -11,7 +11,7 @@ public sealed record WordSection(string Title,List<Question> Questions);
 
 public static partial class WordReader {
     static readonly XNamespace W="http://schemas.openxmlformats.org/wordprocessingml/2006/main";
-    static string Plain(XElement e)=>string.Concat(e.Descendants().Where(x=>x.Name==W+"t"||x.Name==W+"tab"||x.Name==W+"br").Select(x=>x.Name==W+"t"?x.Value:x.Name==W+"tab"?"\t":"\n")).Trim();
+    static string Plain(XElement e)=>string.Concat(e.Descendants().Where(x=>x.Name==W+"t"||x.Name==W+"sym"||x.Name==W+"tab"||x.Name==W+"br").Select(x=>x.Name==W+"t"?ReadWordText(x):x.Name==W+"sym"?ReadWordSymbol(x):x.Name==W+"tab"?"\t":"\n")).Trim();
     static bool On(XElement e)=>e!=null&&!new[]{"0","false","off"}.Contains((string)e.Attribute(W+"val"));
     public static List<Question> Read(string path) {
         var sections=ReadSections(path);
@@ -30,7 +30,7 @@ public static partial class WordReader {
         var sections=SplitSections(doc,styles,Path.GetFileNameWithoutExtension(path));
         var result=new List<WordSection>();
         foreach(var section in sections){
-            try {result.Add(new(section.title,ReadDocument(section.doc,styles,numbering,zip,Xml,sections.Count>1)));}
+            try {result.Add(new(section.title,WarnWordSymbols(ReadDocument(section.doc,styles,numbering,zip,Xml,sections.Count>1))));}
             catch(Exception ex) when(ex is InvalidDataException||ex.GetType()==typeof(Exception)){
                 throw new InvalidDataException($"{section.title}: {ex.Message}",ex);
             }

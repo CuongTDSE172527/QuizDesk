@@ -1,4 +1,4 @@
-# QuizDesk 5.16.7 — Windows, macOS, Android và mã nguồn iOS
+# QuizDesk 5.16.8 — Windows, macOS, Android và mã nguồn iOS
 
 Word tổng hợp nhiều môn: khi nhập DOCX (hoặc DOC được chuyển đổi), ứng dụng bỏ qua
 mục lục Word và tạo một bộ đề cho mỗi tiêu đề môn/phần. Dùng Heading 1 cho tiêu đề môn
@@ -545,8 +545,8 @@ trên PC/mobile, không cần cài Microsoft Office, LibreOffice, không gọi s
 - Không thêm định dạng cũ XLS/DOC trong đợt này. .quiz vẫn là bản sao lưu đầy đủ
   nhất cho media, cấu hình thi và thông tin cần rà soát của QuizDesk.
 
-Version hiển thị là **5.16.7**, Android versionCode **60112**, iOS build **27**.
-Chạy Actions với version/tag `v5.16.7`, hoặc để trống tag ở lượt chạy thủ công sau
+Version hiển thị là **5.16.8**, Android versionCode **60113**, iOS build **28**.
+Chạy Actions với version/tag `v5.16.8`, hoặc để trống tag ở lượt chạy thủ công sau
 khi commit/push source. Bộ đóng gói macOS tự đọc version từ project Desktop.
 
 ## Tự động build khi push
@@ -583,3 +583,14 @@ mặc định 0%) và **Độ trong suốt** (0–100, mặc định 50%). Thay 
 và được nhớ khi mở lại app. Mức trong suốt là cường độ tương đối: 0 làm lớp nền
 đặc, 100 đạt mức kính tối đa có giới hạn để giữ nội dung dễ đọc; không làm chữ
 trong suốt. Trên mobile, nền phía sau kính vẫn nằm trong app.
+
+### Ký hiệu trong Word
+
+Ký hiệu Unicode thông thường và các ký hiệu phổ biến được Word lưu bằng `w:sym`
+hoặc run font Symbol được chuyển sang chữ Unicode khi nhập, ví dụ `12µs`, `±`, `τ`,
+`Ω`, `π`, `√`. Không cần cài font Symbol trên điện thoại. Font/ký hiệu chưa có ánh xạ
+được giữ bằng nhãn và cảnh báo rà soát, không tự đoán hoặc bỏ mất ký hiệu.
+Đây chưa phải bộ chuyển đổi đầy đủ công thức OMML/MathType/OLE.
+
+Nếu bộ đề đã nhập trước bản sửa có chữ `12s` thay vì `12µs`, nhập lại file Word gốc.
+Bắt đầu lượt flashcards mới để dùng nội dung đã sửa; lượt học cũ giữ snapshot cũ.
