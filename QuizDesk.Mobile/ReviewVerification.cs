@@ -12,6 +12,12 @@ public partial class MainView {
             Navigate("bank");OpenLibraryBank(currentBankId.Value);await Capture("review-07-restored");
             return "PASS: confirmed answers, explanations and resolved warnings survive fresh process; library stays usable.";
         }
+        var detailed=new Question {Number=999,Text="Kiểm tra đáp án",Answer="B",Options=new(){{"A","Sai"},{"B","12µs · "+new string('x',400)}}};
+        var row=QuestionRow(detailed);
+        Check(Controls<TextBlock>(row).Single(t=>t.Name=="CorrectAnswerDetail").Text==detailed.Options["B"],"Editor answer detail lost/truncated option text or symbols");
+        Check(Controls<TextBlock>(row).Any(t=>t.Text?.Contains("Đáp án đúng: B")==true),"Editor hides correct answer label");
+        detailed.Answer="";Check(!Controls<TextBlock>(QuestionRow(detailed)).Any(t=>t.Name=="CorrectAnswerDetail"),"Missing answer shows invented detail");
+        detailed.Answer="H";Check(Controls<TextBlock>(QuestionRow(detailed)).Any(t=>t.Text?.Contains("Không tìm thấy nội dung")==true),"Missing option reference not identified");
         preferences.Theme="light";ApplyTheme();
         string path=Path.Combine(dataRoot,"review-source.txt");
         File.WriteAllText(path,"Câu 1. Chọn quả?\nA. Táo\nA. Lê\nC. Nho\nĐáp án: A\nCâu 2. Chọn số?\nA. Một\nB. Hai\nCâu 3. Chọn con vật?\nA. Mèo\nB. Mèo\nĐáp án: B\nCâu 4. Câu có đáp án hợp lệ\nA. Một\nB. Hai\nĐáp án: A");
@@ -28,6 +34,7 @@ public partial class MainView {
         Edit(bank[0]);await Task.Delay(100);Check(Controls<TextBlock>(modal).Any(t=>t.Text?.Contains("Trùng nhãn")==true),"Editor hides source warning");await Capture("review-03-editor");
         Controls<ComboBox>(modal).Single(c=>c.Name=="CorrectAnswer").SelectedIndex=2;Click(Find(modal,"Lưu câu hỏi"));await Task.Delay(100);
         Check(bank[0].Answer=="B"&&!QuestionReview.RequiresReview(bank[0]),"Saving a confirmed answer did not clear source warning");
+        Check(Controls<TextBlock>(QuestionRow(bank[0])).Single(t=>t.Name=="CorrectAnswerDetail").Text==bank[0].Options["B"],"Saved answer detail is stale");
         Edit(bank[1]);await Task.Delay(80);Controls<ComboBox>(modal).Single(c=>c.Name=="CorrectAnswer").SelectedIndex=1;
         Controls<TextBox>(modal).Single(c=>c.Name=="QuestionNote").Text="Đáp án do người dùng bổ sung.";Click(Find(modal,"Lưu câu hỏi"));await Task.Delay(100);
         Check(bank[1].Answer=="A"&&!QuestionReview.RequiresReview(bank[1]),"Missing answer cannot be added");

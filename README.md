@@ -1,4 +1,4 @@
-# QuizDesk 5.17.0 — Windows, macOS, Android và mã nguồn iOS
+# QuizDesk 5.17.1 — Windows, macOS, Android và mã nguồn iOS
 
 Word tổng hợp nhiều môn: khi nhập DOCX (hoặc DOC được chuyển đổi), ứng dụng bỏ qua
 mục lục Word và tạo một bộ đề cho mỗi tiêu đề môn/phần. Dùng Heading 1 cho tiêu đề môn
@@ -545,8 +545,8 @@ trên PC/mobile, không cần cài Microsoft Office, LibreOffice, không gọi s
 - Không thêm định dạng cũ XLS/DOC trong đợt này. .quiz vẫn là bản sao lưu đầy đủ
   nhất cho media, cấu hình thi và thông tin cần rà soát của QuizDesk.
 
-Version hiển thị là **5.17.0**, Android versionCode **60114**, iOS build **29**.
-Chạy Actions với version/tag `v5.17.0`, hoặc để trống tag ở lượt chạy thủ công sau
+Version hiển thị là **5.17.1**, Android versionCode **60115**, iOS build **30**.
+Chạy Actions với version/tag `v5.17.1`, hoặc để trống tag ở lượt chạy thủ công sau
 khi commit/push source. Bộ đóng gói macOS tự đọc version từ project Desktop.
 
 ## Tự động build khi push

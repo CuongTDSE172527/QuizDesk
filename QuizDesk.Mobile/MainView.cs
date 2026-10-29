@@ -231,7 +231,13 @@ public partial class MainView : UserControl {
             check.IsCheckedChanged+=(_,_)=>{if(check.IsChecked==true)setup.Included.Add(q.Number);else setup.Included.Remove(q.Number);dirty=true;PersistBank();UpdateSelection();};grid.Children.Add(check);
             var heading=Text("Câu "+q.Number+" · "+q.Text,15);heading.MaxLines=2;heading.TextTrimming=TextTrimming.CharacterEllipsis;
             var issues=QuestionReview.Messages(q);
-            var center=Stack(heading,Text($"{q.Options.Count} lựa chọn · {(q.Answer==""?"Chưa có đáp án":"Đáp án "+q.Answer)}{(QuestionReview.ScoringAnswer(q)==""?" · Chưa tính điểm":"")}{(q.Note!=""?" · Có giải thích/ghi chú":"")}{(q.Media.Count>0?$" · {q.Media.Count} media":"")}",12));
+            var center=Stack(heading,Text($"{q.Options.Count} lựa chọn · {(q.Answer==""?"Chưa có đáp án":"Đáp án đúng: "+q.Answer)}{(QuestionReview.ScoringAnswer(q)==""?" · Chưa tính điểm":"")}{(q.Note!=""?" · Có giải thích/ghi chú":"")}{(q.Media.Count>0?$" · {q.Media.Count} media":"")}",12));
+            if(q.Answer!="") {
+                var answerContent=q.Options.GetValueOrDefault(q.Answer);
+                var detail=Text(string.IsNullOrWhiteSpace(answerContent)?"Không tìm thấy nội dung lựa chọn — cần kiểm tra lại.":answerContent,14);
+                detail.Name="CorrectAnswerDetail";center.Children.Add(detail);
+                if(q.Media.Any(m=>m.Target==q.Answer))center.Children.Add(Supporting("Đáp án có hình ảnh / media · Nhấn Sửa để xem chi tiết.",12));
+            }
             if(issues.Count>0){var warning=Text("⚠ "+string.Join("\n",issues),13);Tone(warning,TextBlock.ForegroundProperty,"OnWarningContainer");center.Children.Add(warning);}
             Grid.SetColumn(center,1);grid.Children.Add(center);
             var edit=Btn("Sửa",()=>Edit(q));var remove=Btn("Xóa",()=>DeleteQuestion(q));edit.Classes.Add("text");remove.Classes.Add("text");var actions=Row(edit,remove);Grid.SetColumn(actions,1);Grid.SetRow(actions,1);grid.Children.Add(actions);var card=issues.Count>0?ReviewCard(grid):Card(grid);card.Name="QuestionRow"+q.Number;if(issues.Count==0)Tone(card,Border.BackgroundProperty,"Surface");return card;

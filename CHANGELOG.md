@@ -1,3 +1,10 @@
+# QuizDesk 5.17.1 — 29/10/2026
+
+- Màn hình biên soạn hiển thị ký hiệu và toàn bộ nội dung lựa chọn đúng ngay trên từng câu hỏi;
+  nội dung dài tự xuống dòng, giữ nguyên ký hiệu toán học.
+- Đáp án có media được ghi chú để mở xem trong Sửa; câu thiếu đáp án hoặc cần rà soát vẫn giữ cảnh báo.
+- Đồng bộ version 5.17.1; Android versionCode 60115, iOS build 30.
+
 # QuizDesk 5.17.0 — 28/10/2026
 
 - Tối ưu snapshot thư viện bằng deep copy trực tiếp thay cho vòng JSON/base64;
