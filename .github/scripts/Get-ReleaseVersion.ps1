@@ -5,7 +5,7 @@ if([string]::IsNullOrWhiteSpace($Tag)){
     [xml]$source=Get-Content -LiteralPath $project -Raw
     $Tag='v'+$source.SelectSingleNode('/Project/PropertyGroup/Version').InnerText
 }
-if($Tag -cnotmatch '^v([0-9]+\.[0-9]+\.[0-9]+)$'){throw 'Use a release tag such as v5.17.1 (three numeric components).'}
+if($Tag -cnotmatch '^v([0-9]+\.[0-9]+\.[0-9]+)$'){throw 'Use a release tag such as v5.17.2 (three numeric components).'}
 $version=$Matches[1]
 $root=Split-Path (Split-Path $PSScriptRoot)
 $projects=@{

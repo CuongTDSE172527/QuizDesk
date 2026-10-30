@@ -1,3 +1,11 @@
+# QuizDesk 5.17.2 — 30/10/2026
+
+- Lưu tiến trình ôn tập riêng theo từng bộ đề khi thoát; thêm Tiếp tục ôn tập trong Học & thi.
+- Giữ nguyên câu đang ôn, các đáp án đã chọn, phản hồi và thứ tự câu/lựa chọn đã trộn.
+- Ôn tập lại từ đầu có xác nhận trước khi thay lượt đã lưu; tiếp tục dùng snapshot cũ,
+  lượt mới dùng nội dung và cấu hình hiện tại. Ôn tập không tạo điểm hay lịch sử thi thử.
+- Đồng bộ version 5.17.2; Android versionCode 60116, iOS build 31.
+
 # QuizDesk 5.17.1 — 29/10/2026
 
 - Màn hình biên soạn hiển thị ký hiệu và toàn bộ nội dung lựa chọn đúng ngay trên từng câu hỏi;

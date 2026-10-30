@@ -309,7 +309,8 @@ public partial class MainView : UserControl {
         shuffle.IsCheckedChanged+=(_,_)=>{setup.ShuffleQuestions=shuffle.IsChecked==true;dirty=true;PersistBank();RememberExamSettings();};options.IsCheckedChanged+=(_,_)=>{setup.ShuffleOptions=options.IsChecked==true;dirty=true;PersistBank();RememberExamSettings();};
         page.Children.Add(Card(Stack(Field("Số câu thi thử",count),Field("Thời gian (phút)",minutes),shuffle,options)));
         page.Children.Add(Card(Stack(Text("Ôn tập hay thi thử?",22),Text("Ôn tập: dùng tất cả câu đã chọn. Xem kết quả và giải thích sau mỗi câu.\n\nThi thử: lấy số câu đã đặt. Có thể đổi đáp án đến khi nộp hoặc hết giờ."),Text("Tắt trộn lựa chọn nếu nội dung câu/giải thích nhắc đến nhãn A/B/C/D. Ghi chú giữ nguyên nội dung gốc.",13))));
-        page.Children.Add(Row(Btn("Bắt đầu thi thử",()=>Start(false),true),Btn("Ôn tập",()=>Start(true)),Btn("Lưu cấu hình",Save)));
+        page.Children.Add(Row(Btn("Bắt đầu thi thử",()=>Start(false),true),Btn("Ôn tập",StartNewPractice),Btn("Lưu cấu hình",Save)));
+        PracticeEntry();
         StudyEntry();
     }
     void Start(bool isPractice) {
@@ -334,6 +335,7 @@ public partial class MainView : UserControl {
         feedbackText=Text("");noteMedia=Gallery();questionFeedback=new Border {Child=Stack(feedbackText,noteMedia),IsVisible=false,Padding=new Thickness(16),CornerRadius=new CornerRadius(14)};choices.Children.Add(questionFeedback);page.Children.Add(Card(choices));
         previousQuestion=Btn("← Câu trước",()=>MoveToQuestion(index-1));nextQuestion=Btn("Câu tiếp →",()=>MoveToQuestion(index+1));
         var end=practice?Btn("Thoát ôn tập",ExitPractice):Btn("Nộp bài",async()=>{if(await Ask("Nộp bài?",$"Bạn đã trả lời {answers.Count}/{exam.Count} câu.","Nộp bài"))Finish();},true);
+        if(practice)page.Children.Add(Supporting("Tiến trình tự lưu khi trả lời, chuyển câu hoặc thoát ôn tập. Có thể tiếp tục riêng từng bộ đề trong Học & thi.",12));
         page.Children.Add(Row(previousQuestion,nextQuestion,end));
         CreateJumpNavigator();
     }
@@ -353,7 +355,7 @@ public partial class MainView : UserControl {
     }
     void ExitPractice(){
         if(!active||!practice)return;
-        try{workspace.Complete(activeAttemptId);}catch(Exception ex) when(ex is IOException||ex is InvalidDataException||ex is UnauthorizedAccessException){Notify("Chưa thể kết thúc ôn tập: "+ex.Message,true);return;}
+        try{SavePracticeProgress();workspace.Complete(activeAttemptId);}catch(Exception ex) when(ex is IOException||ex is InvalidDataException||ex is UnauthorizedAccessException){Notify("Chưa lưu được ôn tập: "+ex.Message,true);return;}
         active=false;timer.Stop();attemptWatch.Stop();currentDialog?.Close(false);navigation.IsEnabled=true;Navigate("setup");IncomingChanged();
     }
     void Tick(){if(!active)return;var left=deadline-DateTime.Now;clock.Text=left.TotalSeconds>0?left.ToString(@"hh\:mm\:ss"):"00:00:00";if(left.TotalSeconds<=0)Finish(true);}
