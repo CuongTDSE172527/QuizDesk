@@ -22,6 +22,7 @@ public partial class MainView {
         string phase=Environment.GetEnvironmentVariable("QUIZDESK_MOBILE_QA_PHASE")??"first";
         string result=Path.Combine(dataRoot,phase+"-result.txt");Directory.CreateDirectory(dataRoot);
         try {
+            if(phase.StartsWith("flags")){File.WriteAllText(result,await VerifyFlags(phase));return;}
             if(phase=="word-symbols"){File.WriteAllText(result,await VerifyWordSymbols());return;}
             if(phase=="aero"){File.WriteAllText(result,await VerifyAero());return;}
             if(phase.StartsWith("motion")){File.WriteAllText(result,await VerifyMotion(phase));return;}

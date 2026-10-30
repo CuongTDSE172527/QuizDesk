@@ -33,11 +33,11 @@ public partial class MainView {
     public void PersistSession(){FlushGlassSettings();PersistBank();if(active)Checkpoint();if(studying)SaveStudy();}
     public void ResumeSession(){UpdateHeaderDateTime();if(active&&!practice)Tick();IncomingChanged();}
     void BeginCheckpoint() {
-        try{workspace.Begin(new ActiveMobileExam {LibraryBankId=examBankId,Id=activeAttemptId,Title=examTitle,StartedAt=startedAt,Deadline=new DateTimeOffset(deadline),Practice=practice,Minutes=examMinutes,Exam=exam});}
+        try{workspace.Begin(new ActiveMobileExam {LibraryBankId=examBankId,Id=activeAttemptId,Title=examTitle,StartedAt=startedAt,Deadline=new DateTimeOffset(deadline),Practice=practice,Minutes=examMinutes,Exam=exam,Flagged=new(flaggedQuestions)});}
         catch(Exception ex) when(ex is IOException||ex is UnauthorizedAccessException){Notify("Chưa lưu được bài đang làm: "+ex.Message,true);}
     }
     void Checkpoint() {
-        try{workspace.Checkpoint(activeAttemptId,index,answers);}catch(Exception ex) when(ex is IOException||ex is UnauthorizedAccessException){Notify("Chưa lưu được lựa chọn: "+ex.Message,true);}
+        try{workspace.Checkpoint(activeAttemptId,index,answers,flaggedQuestions);}catch(Exception ex) when(ex is IOException||ex is UnauthorizedAccessException){Notify("Chưa lưu được lựa chọn: "+ex.Message,true);}
     }
     void RestoreExam(ActiveMobileExam state) {
         restoring=true;
@@ -45,6 +45,7 @@ public partial class MainView {
             examBankId=state.LibraryBankId;examTitle=state.Title;
             activeAttemptId=state.Id;exam=state.Exam;index=state.Index;practice=state.Practice;startedAt=state.StartedAt;deadline=state.Deadline.LocalDateTime;
             examMinutes=state.Minutes;answers.Clear();foreach(var pair in state.Answers)answers[pair.Key]=pair.Value;
+            flaggedQuestions.Clear();if(!practice)flaggedQuestions.UnionWith(state.Flagged??new());
             active=true;navigation.IsEnabled=false;CreateQuestionView();ShowQuestion();
             if(!practice){timer.Start();Tick();}Notify(active?"Đã khôi phục bài đang làm.":"Bài đã hết giờ khi app ở nền; kết quả đã được nộp.");
         }finally{restoring=false;}

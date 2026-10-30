@@ -1,3 +1,11 @@
+# QuizDesk 5.17.3 — 30/10/2026
+
+- Thi thử: đánh dấu/bỏ đánh dấu câu chưa chắc chắn; số câu có dấu ★ để nhận biết.
+- Nút Câu đánh dấu tiếp đi qua các câu đã đánh dấu, kể cả ở trang số câu khác,
+  và quay vòng về đầu. Chọn đáp án không tự bỏ dấu, không ảnh hưởng chấm điểm.
+- Lưu/khôi phục dấu cùng checkpoint bài thi; lượt mới bắt đầu không có dấu.
+- Đồng bộ version 5.17.3; Android versionCode 60117, iOS build 32.
+
 # QuizDesk 5.17.2 — 30/10/2026
 
 - Lưu tiến trình ôn tập riêng theo từng bộ đề khi thoát; thêm Tiếp tục ôn tập trong Học & thi.

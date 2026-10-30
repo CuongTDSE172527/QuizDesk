@@ -316,7 +316,7 @@ public partial class MainView : UserControl {
     void Start(bool isPractice) {
         try{exam=QuizSetup.Build(bank,setup,isPractice,new Random());}catch(Exception ex){Notify(ex.Message,true);return;}
         examTitle=title;examMinutes=setup.Minutes;examBankId=currentBankId;
-        answers.Clear();index=0;practice=isPractice;active=true;activeAttemptId=Guid.NewGuid();deadline=DateTime.Now.AddMinutes(setup.Minutes);notice.IsVisible=false;navigation.IsEnabled=false;
+        flaggedQuestions.Clear();answers.Clear();index=0;practice=isPractice;active=true;activeAttemptId=Guid.NewGuid();deadline=DateTime.Now.AddMinutes(setup.Minutes);notice.IsVisible=false;navigation.IsEnabled=false;
         startedAt=DateTimeOffset.Now;attemptWatch.Restart();BeginCheckpoint();
         clock.Text=TimeSpan.FromMinutes(setup.Minutes).ToString(@"hh\:mm\:ss");CreateQuestionView();ShowQuestion();if(!practice)timer.Start();pageScroll.Offset=default;Animate(page);
     }
@@ -337,6 +337,7 @@ public partial class MainView : UserControl {
         var end=practice?Btn("Thoát ôn tập",ExitPractice):Btn("Nộp bài",async()=>{if(await Ask("Nộp bài?",$"Bạn đã trả lời {answers.Count}/{exam.Count} câu.","Nộp bài"))Finish();},true);
         if(practice)page.Children.Add(Supporting("Tiến trình tự lưu khi trả lời, chuyển câu hoặc thoát ôn tập. Có thể tiếp tục riêng từng bộ đề trong Học & thi.",12));
         page.Children.Add(Row(previousQuestion,nextQuestion,end));
+        CreateFlagControls();
         CreateJumpNavigator();
     }
     void MoveToQuestion(int target){if(!active||target<0||target>=exam.Count)return;if(index==target){UpdateJumpState();return;}index=target;ShowQuestion();Checkpoint();Animate(questionText,110);}

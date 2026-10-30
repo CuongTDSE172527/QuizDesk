@@ -25,12 +25,14 @@ public partial class MainView {
     }
     void UpdateJumpState(){
         int start=index/JumpPageSize*JumpPageSize;
-        bool changed=start!=jumpStart;jumpStart=start;
+        jumpStart=start;
         for(int i=0;i<jumpButtons.Count;i++){
             int target=start+i;var button=jumpButtons[i];button.IsVisible=target<exam.Count;
-            if(changed){button.Tag=target;button.Content=(target+1).ToString();Avalonia.Automation.AutomationProperties.SetName(button,"Câu "+(target+1));}
+            button.Tag=target;button.Content=(target+1)+(flaggedQuestions.Contains(target)?" ★":"");
+            Avalonia.Automation.AutomationProperties.SetName(button,"Câu "+(target+1)+(flaggedQuestions.Contains(target)?" · Đã đánh dấu xem lại":"")+(answers.ContainsKey(target)?" · Đã trả lời":" · Chưa trả lời"));
             button.IsChecked=answers.ContainsKey(target);button.Classes.Set("current",target==index);
         }
+        UpdateFlagControls();
         if(jumpRange!=null){jumpRange.Text=$"Câu {start+1}–{Math.Min(exam.Count,start+JumpPageSize)} / {exam.Count}";jumpPrevious.IsEnabled=start>0;jumpNext.IsEnabled=start+JumpPageSize<exam.Count;}
     }
 }
