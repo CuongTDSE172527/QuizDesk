@@ -62,7 +62,7 @@ public sealed class MobileWorkspace {
             var progress=Read<MobileExamProgress>("exam-progress.json");
             if(progress?.Id==state.Id){state.Index=progress.Index;state.Answers=progress.Answers??new();state.Flagged=progress.Flagged??new();}
             state.Index=Math.Clamp(state.Index,0,state.Exam.Count-1);state.Answers??=new();
-            foreach(var pair in state.Answers.ToArray())if(pair.Key<0||pair.Key>=state.Exam.Count||!state.Exam[pair.Key].Options.ContainsKey(pair.Value??""))state.Answers.Remove(pair.Key);
+            foreach(var pair in state.Answers.ToArray())if(pair.Key<0||pair.Key>=state.Exam.Count||(state.Exam[pair.Key].IsEssay?(pair.Value==null||pair.Value.Length>32768):!state.Exam[pair.Key].Options.ContainsKey(pair.Value??"")))state.Answers.Remove(pair.Key);
             return state;
         }catch(Exception ex) when(ex is IOException||ex is UnauthorizedAccessException||ex is JsonException||ex is InvalidDataException){warning="Không đọc được bài đang làm. File được giữ nguyên: "+ex.Message;return null;}
     }

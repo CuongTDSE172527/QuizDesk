@@ -231,9 +231,9 @@ public partial class MainView : UserControl {
             check.IsCheckedChanged+=(_,_)=>{if(check.IsChecked==true)setup.Included.Add(q.Number);else setup.Included.Remove(q.Number);dirty=true;PersistBank();UpdateSelection();};grid.Children.Add(check);
             var heading=Text("Câu "+q.Number+" · "+q.Text,15);heading.MaxLines=2;heading.TextTrimming=TextTrimming.CharacterEllipsis;
             var issues=QuestionReview.Messages(q);
-            var center=Stack(heading,Text($"{q.Options.Count} lựa chọn · {(q.Answer==""?"Chưa có đáp án":"Đáp án đúng: "+q.Answer)}{(QuestionReview.ScoringAnswer(q)==""?" · Chưa tính điểm":"")}{(q.Note!=""?" · Có giải thích/ghi chú":"")}{(q.Media.Count>0?$" · {q.Media.Count} media":"")}",12));
+            var center=Stack(heading,Text($"{(q.IsEssay?"Tự luận":q.Options.Count+" lựa chọn")} · {(q.Answer==""?"Chưa có đáp án":q.IsEssay?"Có đáp án mẫu":"Đáp án đúng: "+q.Answer)}{(QuestionReview.ScoringAnswer(q)==""?" · Chưa tính điểm":"")}{(q.Note!=""?" · Có giải thích/ghi chú":"")}{(q.Media.Count>0?$" · {q.Media.Count} media":"")}",12));
             if(q.Answer!="") {
-                var answerContent=q.Options.GetValueOrDefault(q.Answer);
+                var answerContent=q.IsEssay?q.Answer:q.Options.GetValueOrDefault(q.Answer);
                 var detail=Text(string.IsNullOrWhiteSpace(answerContent)?"Không tìm thấy nội dung lựa chọn — cần kiểm tra lại.":answerContent,14);
                 detail.Name="CorrectAnswerDetail";center.Children.Add(detail);
                 if(q.Media.Any(m=>m.Target==q.Answer))center.Children.Add(Supporting("Đáp án có hình ảnh / media · Nhấn Sửa để xem chi tiết.",12));
@@ -248,16 +248,21 @@ public partial class MainView : UserControl {
         int number=original?.Number??(bank.Count==0?1:bank.Max(q=>q.Number)+1);
         var dialog=Dialog(original==null?"Thêm câu hỏi":"Sửa câu "+number);dialog.Height=730;
         var text=new TextBox {Name="QuestionText",Text=original?.Text??"",AcceptsReturn=true,TextWrapping=TextWrapping.Wrap,MinHeight=90};
-        var body=Stack(Text(original==null?"Thêm câu hỏi":"Sửa câu "+number,22),Field("Nội dung câu hỏi",text),Text("Nhập ít nhất 2 lựa chọn. Bỏ trống các ô không dùng.",13));var options=new Dictionary<string,TextBox>();
+        var body=Stack(Text(original==null?"Thêm câu hỏi":"Sửa câu "+number,22),Field("Nội dung câu hỏi",text),Text("Trắc nghiệm: nhập 2–8 lựa chọn. Với câu tự luận, bật Câu tự luận và nhập đáp án mẫu bên dưới.",13));var options=new Dictionary<string,TextBox>();
         if(original!=null){body.Children.Add(Text("Nguồn: "+original.AnswerSource+"\nĐáp án gốc: "+original.OriginalAnswer,13));var issues=QuestionReview.Messages(original);if(issues.Count>0)body.Children.Add(ReviewCard(Text(string.Join("\n",issues)+"\n\nLưu sau khi kiểm tra để xác nhận các nhãn và đáp án. Nội dung lựa chọn còn trùng sẽ tiếp tục được đánh dấu.",13)));}
-        foreach(char c in "ABCDEFGH") {string key=c.ToString();var box=new TextBox {Name="Option"+key,Text=original?.Options.GetValueOrDefault(key)??"",AcceptsReturn=true,TextWrapping=TextWrapping.Wrap};options[key]=box;body.Children.Add(Field("Lựa chọn "+key,box));}
-        var answer=new ComboBox {Name="CorrectAnswer",ItemsSource=new[]{"Chưa có đáp án (chưa tính điểm)","A","B","C","D","E","F","G","H"},HorizontalAlignment=HorizontalAlignment.Stretch,SelectedIndex=original==null||original.Answer==""?0:original.Answer[0]-'A'+1};body.Children.Add(Field("Đáp án đúng — có thể bổ sung sau",answer));
+        var essayType=new CheckBox {Name="EssayType",Content="Câu tự luận",IsChecked=original?.IsEssay==true};body.Children.Add(essayType);
+        var choiceFields=new List<Control>();
+        foreach(char c in "ABCDEFGH") {string key=c.ToString();var box=new TextBox {Name="Option"+key,Text=original?.Options.GetValueOrDefault(key)??"",AcceptsReturn=true,TextWrapping=TextWrapping.Wrap};options[key]=box;var optionField=Field("Lựa chọn "+key,box);choiceFields.Add(optionField);body.Children.Add(optionField);}
+        var answer=new ComboBox {Name="CorrectAnswer",ItemsSource=new[]{"Chưa có đáp án (chưa tính điểm)","A","B","C","D","E","F","G","H"},HorizontalAlignment=HorizontalAlignment.Stretch,SelectedIndex=original==null||original.IsEssay||original.Answer==""?0:original.Answer[0]-'A'+1};var answerField=Field("Đáp án đúng — có thể bổ sung sau",answer);body.Children.Add(answerField);
+        var model=new TextBox {Name="EssayModel",Text=original?.IsEssay==true?original.Answer:"",AcceptsReturn=true,TextWrapping=TextWrapping.Wrap,MinHeight=140,MaxLength=32768};var modelField=Field("Đáp án mẫu / tiêu chí tự chấm (có thể bổ sung sau)",model);body.Children.Add(modelField);
+        void SetEssayType(){foreach(var f in choiceFields)f.IsVisible=essayType.IsChecked!=true;answerField.IsVisible=essayType.IsChecked!=true;modelField.IsVisible=essayType.IsChecked==true;}
+        essayType.IsCheckedChanged+=(_,_)=>SetEssayType();SetEssayType();
         var note=new TextBox {Name="QuestionNote",Text=original?.Note??"",AcceptsReturn=true,TextWrapping=TextWrapping.Wrap,MinHeight=80};body.Children.Add(Field("Giải thích / ghi chú",note));
         var attachments=(original?.Media??new()).Select(m=>m.Clone()).ToList();AddMediaEditor(body,attachments,original);
         var error=Text("");body.Children.Add(error);
         var save=Btn("Lưu câu hỏi",()=>{
-            var result=new Question {Number=number,Media=attachments.Select(m=>m.Clone()).ToList(),Text=text.Text?.Trim()??"",Answer=answer.SelectedIndex<=0?"":answer.SelectedItem.ToString(),Note=note.Text?.Trim()??"",OriginalAnswer=original?.OriginalAnswer??"",AnswerSource="Người dùng đã kiểm tra / biên soạn"};
-            foreach(var o in options){if(!string.IsNullOrWhiteSpace(o.Value.Text))result.Options[o.Key]=o.Value.Text.Trim();else if(attachments.Any(m=>m.Target==o.Key))result.Options[o.Key]="(Xem media)";}
+            var result=new Question {IsEssay=essayType.IsChecked==true,Number=number,Media=attachments.Select(m=>m.Clone()).ToList(),Text=text.Text?.Trim()??"",Answer=essayType.IsChecked==true?(model.Text??"").Trim():answer.SelectedIndex<=0?"":answer.SelectedItem.ToString(),Note=note.Text?.Trim()??"",OriginalAnswer=original?.OriginalAnswer??"",AnswerSource="Người dùng đã kiểm tra / biên soạn"};
+            if(!result.IsEssay)foreach(var o in options){if(!string.IsNullOrWhiteSpace(o.Value.Text))result.Options[o.Key]=o.Value.Text.Trim();else if(attachments.Any(m=>m.Target==o.Key))result.Options[o.Key]="(Xem media)";}
             if(string.IsNullOrWhiteSpace(result.Text)&&attachments.Any(m=>m.Target=="question"))result.Text="Xem hình ảnh / video và chọn đáp án.";
             try{CommitQuestion(original,result);edited=result;dialog.Close(true);}catch(Exception ex){error.Text=ex.Message;}
         },true);
@@ -325,7 +330,7 @@ public partial class MainView : UserControl {
         page.Children.Clear();answerButtons.Clear();answerLabels.Clear();answerMarkers.Clear();jumpButtons.Clear();page.Children.Add(Text(practice?"ÔN TẬP":"THI THỬ",12));
         questionHeading=Text("",24);page.Children.Add(questionHeading);questionSummary=Text("");page.Children.Add(questionSummary);if(!practice)page.Children.Add(clock);
         questionProgress=new ProgressBar {Minimum=0,Maximum=exam.Count,Height=6};page.Children.Add(questionProgress);
-        questionText=Text("",22);questionText.FontWeight=FontWeight.Medium;var choices=Stack(questionText);questionMedia=Gallery();choices.Children.Add(questionMedia);choiceMedia.Clear();
+        questionText=Text("",22);questionText.FontWeight=FontWeight.Medium;var choices=Stack(questionText);questionMedia=Gallery();choices.Children.Add(questionMedia);CreateEssayInput(choices);choiceMedia.Clear();
         foreach(char c in "ABCDEFGH") {
             string key=c.ToString();var label=Text("",16);var marker=Text("",16);marker.FontWeight=FontWeight.SemiBold;marker.VerticalAlignment=VerticalAlignment.Center;
             var content=new Grid {ColumnDefinitions=new ColumnDefinitions("24,*"),ColumnSpacing=8};content.Children.Add(marker);var optionBody=Stack(label);var gallery=Gallery();choiceMedia[key]=gallery;optionBody.Children.Add(gallery);Grid.SetColumn(optionBody,1);content.Children.Add(optionBody);
@@ -342,9 +347,10 @@ public partial class MainView : UserControl {
     }
     void MoveToQuestion(int target){if(!active||target<0||target>=exam.Count)return;if(index==target){UpdateJumpState();return;}index=target;ShowQuestion();Checkpoint();Animate(questionText,110);}
     void ChooseAnswer(string key){if(!active)return;bool changed=(!practice||!answers.ContainsKey(index))&&exam[index].Options.ContainsKey(key)&&answers.GetValueOrDefault(index)!=key;if(changed)answers[index]=key;UpdateAnswerState();if(changed){Checkpoint();Animate(answerMarkers[key],90,true);}}
-    void ShowQuestion(){var q=exam[index];questionHeading.Text=$"Câu {index+1} / {exam.Count}";questionText.Text=q.Text;questionMedia.Set(q.Media.Where(m=>m.Target=="question"));foreach(var pair in answerButtons){bool exists=q.Options.TryGetValue(pair.Key,out string value);pair.Value.IsVisible=exists;if(exists)answerLabels[pair.Key].Text=pair.Key+".  "+value;choiceMedia[pair.Key].Set(q.Media.Where(m=>m.Target==pair.Key));}previousQuestion.IsEnabled=index>0;nextQuestion.IsEnabled=index<exam.Count-1;UpdateAnswerState();}
+    void ShowQuestion(){var q=exam[index];questionHeading.Text=$"Câu {index+1} / {exam.Count}";questionText.Text=q.Text;questionMedia.Set(q.Media.Where(m=>m.Target=="question"));foreach(var pair in answerButtons){bool exists=!q.IsEssay&&q.Options.ContainsKey(pair.Key);string value=q.Options.GetValueOrDefault(pair.Key);pair.Value.IsVisible=exists;if(exists)answerLabels[pair.Key].Text=pair.Key+".  "+value;choiceMedia[pair.Key].Set(q.Media.Where(m=>m.Target==pair.Key));}ShowEssayInput(q);previousQuestion.IsEnabled=index>0;nextQuestion.IsEnabled=index<exam.Count-1;UpdateAnswerState();}
     void UpdateAnswerState() {
         var q=exam[index];answers.TryGetValue(index,out string picked);questionSummary.Text=$"Đã trả lời {answers.Count} câu · Câu gốc {q.Number}";questionProgress.Value=answers.Count;
+        if(q.IsEssay){UpdateEssayFeedback(q);UpdateJumpState();return;}
         foreach(var p in answerButtons){
             bool correct=practice&&picked!=null&&p.Key==q.Answer,wrong=practice&&picked!=null&&q.Answer!=""&&p.Key==picked&&picked!=q.Answer;
             p.Value.IsChecked=p.Key==picked;p.Value.Classes.Set("correct",correct);p.Value.Classes.Set("wrong",wrong);
@@ -364,15 +370,15 @@ public partial class MainView : UserControl {
         if(!active)return;if(practice){ExitPractice();return;}active=false;timer.Stop();currentDialog?.Close(false);navigation.IsEnabled=true;page.Children.Clear();
         attemptWatch.Stop();ExamAttempt completed=null;
         if(!practice){completed=ExamAttempt.Capture(examTitle,startedAt,timedOut?new DateTimeOffset(deadline):DateTimeOffset.Now,TimeSpan.FromSeconds(Math.Clamp((DateTimeOffset.Now-startedAt).TotalSeconds,0,examMinutes*60)),examMinutes,timedOut,exam,answers);completed.Id=activeAttemptId;unsavedAttempts.Add(completed);TrySaveAttempts();}else{workspace.Complete(activeAttemptId);}
-        int graded=exam.Count(q=>q.Answer!=""),correct=Enumerable.Range(0,exam.Count).Count(i=>exam[i].Answer!=""&&answers.TryGetValue(i,out string a)&&a==exam[i].Answer);
+        int graded=exam.Count(q=>!q.IsEssay&&q.Answer!=""),correct=Enumerable.Range(0,exam.Count).Count(i=>!exam[i].IsEssay&&exam[i].Answer!=""&&answers.TryGetValue(i,out string a)&&a==exam[i].Answer);
         Heading("Hoàn thành","Bạn đã hoàn thành bài làm",graded==0?"Bài chưa có câu đủ đáp án để tính điểm.":$"Đúng {correct} / {graded} câu được tính điểm");
-        page.Children.Add(Card(Stack(Text(graded==0?"—":(10.0*correct/graded).ToString("0.##")+" / 10",42),Text($"Không tính điểm: {exam.Count(q=>q.Answer=="")} câu. Điểm dựa trên đáp án trong bộ đề."))));
+        page.Children.Add(Card(Stack(Text(graded==0?"—":(10.0*correct/graded).ToString("0.##")+" / 10",42),Text($"Không tính điểm: {exam.Count(q=>q.IsEssay||q.Answer=="")} câu. Tự luận được xem lại và tự chấm trong Lịch sử. Điểm tự động chỉ dành cho trắc nghiệm."))));
         var report=new StringBuilder(examTitle+"\n"+DateTime.Now.ToString("dd/MM/yyyy HH:mm")+$"\nĐúng {correct}/{graded}\n\n");
         page.Children.Add(Row(Btn("Lưu kết quả",()=>SaveReport(report.ToString()),true),Btn("Làm lại",()=>Navigate("setup")),Btn("Về bộ đề",()=>Navigate("bank"))));
         if(completed!=null){var snapshot=completed;page.Children.Add(Row(Btn("Xem lại lần thi này",()=>ShowAttempt(snapshot)),Btn("Mở lịch sử",()=>Navigate("history"))));page.Children.Add(Text(unsavedAttempts.Contains(completed)?"Chưa lưu được lịch sử. Mở Lịch sử để thử lưu lại.":"Đã tự động lưu lần thi vào Lịch sử.",13));}
         foreach(int i in Enumerable.Range(0,exam.Count).OrderBy(i=>exam[i].Answer==""?2:answers.TryGetValue(i,out var a)&&a==exam[i].Answer?1:0)) {
             var q=exam[i];string a=answers.GetValueOrDefault(i,"Chưa trả lời");string text=q.Text+"\n\n"+string.Join("\n",q.Options.Select(o=>o.Key+". "+o.Value))+"\n\nBạn chọn: "+a+"\nĐáp án: "+(q.Answer==""?"Không tính điểm":q.Answer)+"\n"+q.Note;report.AppendLine("Câu "+q.Number+"\n"+text+"\n");
-            var detail=new Expander {Header="Câu "+q.Number+" · "+(q.Answer==""?"Không tính điểm":a==q.Answer?"Đúng":a=="Chưa trả lời"?"Chưa trả lời":"Sai"),HorizontalAlignment=HorizontalAlignment.Stretch,HorizontalContentAlignment=HorizontalAlignment.Stretch};
+            var detail=new Expander {Header="Câu "+q.Number+" · "+(q.IsEssay?"Tự luận · Chưa tự chấm":q.Answer==""?"Không tính điểm":a==q.Answer?"Đúng":a=="Chưa trả lời"?"Chưa trả lời":"Sai"),HorizontalAlignment=HorizontalAlignment.Stretch,HorizontalContentAlignment=HorizontalAlignment.Stretch};
             detail.PropertyChanged+=(_,e)=>{if(e.Property==Expander.IsExpandedProperty)detail.Content=detail.IsExpanded?Stack(Text(text),Gallery(q.Media)):null;};page.Children.Add(detail);
         }pageScroll.Offset=default;IncomingChanged();
     }

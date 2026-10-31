@@ -14,12 +14,12 @@ public static class QuestionReview {
     public static List<string> Messages(Question q) {
         var messages=new List<string>(q.ImportWarnings??new());
         foreach(string keys in DuplicateChoices(q))messages.Add("Lựa chọn "+keys+" trùng nội dung. Hãy sửa các lựa chọn.");
-        if(string.IsNullOrEmpty(q.Answer))messages.Add("Chưa có đáp án đúng. Nhấn Sửa để bổ sung.");
+        if(string.IsNullOrEmpty(q.Answer))messages.Add(q.IsEssay?"Chưa có đáp án mẫu. Nhấn Sửa để bổ sung.":"Chưa có đáp án đúng. Nhấn Sửa để bổ sung.");
         if(q.NeedsReview&&messages.Count==0)messages.Add("Đáp án/nội dung từ tài liệu cần được kiểm tra lại.");
         return messages;
     }
     public static bool RequiresReview(Question q)=>Messages(q).Count>0;
-    public static string ScoringAnswer(Question q)=>q.ImportWarnings?.Count>0||DuplicateChoices(q).Count>0?"":q.Answer;
+    public static string ScoringAnswer(Question q)=>q.IsEssay?"":q.ImportWarnings?.Count>0||DuplicateChoices(q).Count>0?"":q.Answer;
     public static void Warn(Question q,string message) {
         q.ImportWarnings??=new();if(!q.ImportWarnings.Contains(message))q.ImportWarnings.Add(message);
     }
@@ -37,6 +37,7 @@ public static class QuestionReview {
         q.Options.Add(key,value);return key;
     }
     public static void ApplyAnswerClaims(Question q,IEnumerable<string> claims,string source) {
+        if(q.IsEssay){q.Answer=string.Join("\n",claims);q.AnswerSource=source;return;}
         var values=claims.Select(s=>(s??"").Trim()).Where(s=>s!="").ToList();
         InputSafety.Require(values.Count<=32&&values.All(v=>v.Length<=32768),"Có quá nhiều dòng đáp án hoặc nội dung đáp án quá dài.");
         if(values.Count==0){q.Answer="";return;}

@@ -1,4 +1,4 @@
-# QuizDesk 5.17.4 — Windows, macOS, Android và mã nguồn iOS
+# QuizDesk 5.17.5 — Windows, macOS, Android và mã nguồn iOS
 
 Word tổng hợp nhiều môn: khi nhập DOCX (hoặc DOC được chuyển đổi), ứng dụng bỏ qua
 mục lục Word và tạo một bộ đề cho mỗi tiêu đề môn/phần. Dùng Heading 1 cho tiêu đề môn
@@ -545,8 +545,8 @@ trên PC/mobile, không cần cài Microsoft Office, LibreOffice, không gọi s
 - Không thêm định dạng cũ XLS/DOC trong đợt này. .quiz vẫn là bản sao lưu đầy đủ
   nhất cho media, cấu hình thi và thông tin cần rà soát của QuizDesk.
 
-Version hiển thị là **5.17.4**, Android versionCode **60118**, iOS build **33**.
-Chạy Actions với version/tag `v5.17.4`, hoặc để trống tag ở lượt chạy thủ công sau
+Version hiển thị là **5.17.5**, Android versionCode **60119**, iOS build **34**.
+Chạy Actions với version/tag `v5.17.5`, hoặc để trống tag ở lượt chạy thủ công sau
 khi commit/push source. Bộ đóng gói macOS tự đọc version từ project Desktop.
 
 ## Tự động build khi push
@@ -643,3 +643,26 @@ chấm điểm và được khôi phục cùng bài thi đang làm sau khi mở 
 Ô số câu đã trả lời đúng có nền xanh kèm ✓, trả lời sai có nền đỏ kèm ×.
 Câu chưa trả lời hoặc chưa có đáp án xác nhận giữ màu trung tính.
 Trạng thái này được khôi phục khi tiếp tục lượt ôn đã lưu và không xuất hiện trong thi thử.
+
+## Ôn và thi tự luận (5.17.5)
+
+Trong Biên soạn → Thêm câu/Sửa, bật **Câu tự luận**, nhập nội dung và đáp án mẫu
+(có thể để trống đáp án mẫu rồi bổ sung sau). Một bộ đề có thể trộn tự luận và trắc nghiệm.
+Ôn tập có ô bài làm nhiều dòng và nút Xem đáp án mẫu; bài làm được giữ khi chuyển câu,
+thoát ôn tập và mở lại app. Thi thử giữ kín đáp án mẫu cho tới khi nộp hoặc hết giờ.
+Bài làm cùng đáp án mẫu được lưu vào Lịch sử. Mở chi tiết câu tự luận để tự chấm
+Đúng/Sai hoặc Bỏ tự chấm; mỗi câu có trọng số bằng nhau. Câu chưa tự chấm được loại
+khỏi điểm, số câu đã chấm hiển thị cạnh điểm tổng. Không chấm ngữ nghĩa bằng AI.
+
+Để nhập tự luận từ tài liệu, dùng nhãn rõ ràng ngay sau số câu:
+
+```text
+Câu 1. [Tự luận] Giải thích nguyên lý hoạt động của DME.
+Đáp án: Nội dung đáp án mẫu nhiều dòng...
+Giải thích: Các ý cần có / tiêu chí đối chiếu.
+```
+
+Nhãn này dùng được trong văn bản/Word và cột text của bảng tính; JSON dùng
+`isEssay: true`, `options: {}`, `answer` chứa đáp án mẫu. `.quiz` giữ nguyên loại câu.
+Giới hạn bài làm và đáp án mẫu: 32.768 ký tự mỗi câu. Các lựa chọn trắc nghiệm thiếu
+hoặc lỗi không bị tự đổi sang tự luận. Phiên bản cũ có thể không mở được bộ đề có tự luận.

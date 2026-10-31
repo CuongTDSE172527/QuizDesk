@@ -4,6 +4,8 @@ using System.Text.Json.Serialization;
 namespace QuizDesk;
 
 public sealed class AttemptQuestion {
+    public bool IsEssay {get;set;}
+    public bool? ManualCorrect {get;set;}
     public int Number {get;set;}
     public string Text {get;set;}="";
     public Dictionary<string,string> Options {get;set;}=new();
@@ -11,7 +13,7 @@ public sealed class AttemptQuestion {
     public string Answer {get;set;}="";
     public string Note {get;set;}="";
     public List<QuestionMedia> Media {get;set;}=new();
-    [JsonIgnore] public string Outcome=>Answer==""?"unscored":Picked==""?"unanswered":Picked==Answer?"correct":"wrong";
+    [JsonIgnore] public string Outcome=>IsEssay?(ManualCorrect.HasValue?(ManualCorrect.Value?"correct":"wrong"):"unscored"):Answer==""?"unscored":Picked==""?"unanswered":Picked==Answer?"correct":"wrong";
 }
 
 public sealed class ExamAttempt {
@@ -34,7 +36,7 @@ public sealed class ExamAttempt {
     public static ExamAttempt Capture(string title,DateTimeOffset started,DateTimeOffset finished,TimeSpan elapsed,int minutes,bool timedOut,IReadOnlyList<Question> exam,IReadOnlyDictionary<int,string> answers) {
         var attempt=new ExamAttempt {Title=title,StartedAt=started,FinishedAt=finished,ElapsedSeconds=Math.Max(0,elapsed.TotalSeconds),Minutes=minutes,TimedOut=timedOut};
         for(int i=0;i<exam.Count;i++) {
-            var q=exam[i];attempt.Questions.Add(new AttemptQuestion {Number=q.Number,Text=q.Text,Options=new(q.Options),Answer=q.Answer,Note=q.Note,Media=q.Media.Select(m=>m.Clone()).ToList(),Picked=answers.TryGetValue(i,out string picked)?picked:""});
+            var q=exam[i];attempt.Questions.Add(new AttemptQuestion {IsEssay=q.IsEssay,Number=q.Number,Text=q.Text,Options=new(q.Options),Answer=q.Answer,Note=q.Note,Media=q.Media.Select(m=>m.Clone()).ToList(),Picked=answers.TryGetValue(i,out string picked)?picked:""});
         }
         attempt.Validate();return attempt;
     }
@@ -42,7 +44,7 @@ public sealed class ExamAttempt {
         if(Questions!=null)MediaFiles.Check(Questions.SelectMany(q=>q?.Media??throw new InvalidDataException("Thiếu media lịch sử.")));
         if(Version!=1||Id==Guid.Empty||Title==null||StartedAt==default||FinishedAt==default||!double.IsFinite(ElapsedSeconds)||ElapsedSeconds<0||Minutes<1||Minutes>300||Questions==null||Questions.Count<1||Questions.Count>5000)
             throw new InvalidDataException("Lịch sử có cấu trúc chưa được hỗ trợ.");
-        if(Questions.Any(q=>q==null||q.Number<1||string.IsNullOrWhiteSpace(q.Text)||q.Note==null||q.Options==null||q.Options.Count<2||q.Options.Count>8||q.Options.Any(p=>p.Key.Length!=1||p.Key[0]<'A'||p.Key[0]>'H'||string.IsNullOrWhiteSpace(p.Value))||q.Answer==null||q.Picked==null||(q.Answer!=""&&!q.Options.ContainsKey(q.Answer))||(q.Picked!=""&&!q.Options.ContainsKey(q.Picked))))
+        if(Questions.Any(q=>q==null||q.Number<1||string.IsNullOrWhiteSpace(q.Text)||q.Note==null||q.Options==null||(!q.IsEssay&&q.Options.Count<2)||(q.IsEssay&&q.Options.Count!=0)||q.Options.Count>8||q.Options.Any(p=>p.Key.Length!=1||p.Key[0]<'A'||p.Key[0]>'H'||string.IsNullOrWhiteSpace(p.Value))||q.Answer==null||q.Picked==null||(q.Answer.Length>(q.IsEssay?32768:8)||(!q.IsEssay&&q.Answer!=""&&!q.Options.ContainsKey(q.Answer)))||(q.Picked.Length>32768||(!q.IsEssay&&q.Picked!=""&&!q.Options.ContainsKey(q.Picked)))))
             throw new InvalidDataException("Nội dung câu hỏi trong lịch sử không hợp lệ.");
     }
 }

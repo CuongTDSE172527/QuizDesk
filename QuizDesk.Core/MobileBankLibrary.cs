@@ -49,7 +49,7 @@ public sealed class MobileBankLibrary {
             Included=bank.Setup.Included==null?null:new(bank.Setup.Included)
         },
         Bank=bank.Bank?.Select(q=>q==null?null:new Question {
-            Number=q.Number,Text=q.Text,Note=q.Note,Answer=q.Answer,
+            IsEssay=q.IsEssay,Number=q.Number,Text=q.Text,Note=q.Note,Answer=q.Answer,
             OriginalAnswer=q.OriginalAnswer,AnswerSource=q.AnswerSource,NeedsReview=q.NeedsReview,
             Options=q.Options==null?null:new(q.Options,StringComparer.Ordinal),
             ImportWarnings=q.ImportWarnings==null?null:new(q.ImportWarnings),
@@ -119,7 +119,7 @@ public sealed class MobileBankLibrary {
                 var questions=source.Content.Bank.ToList();
                 if(take<questions.Count)for(int i=questions.Count-1;i>0;i--){int j=random.Next(i+1);(questions[i],questions[j])=(questions[j],questions[i]);}
                 var chosen=questions.Take(take).ToList();sampledMedia.AddRange(chosen.SelectMany(q=>q.Media));MediaFiles.Check(sampledMedia);
-                sampledCharacters+=chosen.Sum(q=>(long)q.Text.Length+q.Note.Length+q.Options.Sum(o=>(long)o.Value.Length)+(q.OriginalAnswer?.Length??0)+(q.AnswerSource?.Length??0)+(q.ImportWarnings?.Sum(w=>(long)w.Length)??0));
+                sampledCharacters+=chosen.Sum(q=>(long)q.Text.Length+q.Note.Length+q.Answer.Length+q.Options.Sum(o=>(long)o.Value.Length)+(q.OriginalAnswer?.Length??0)+(q.AnswerSource?.Length??0)+(q.ImportWarnings?.Sum(w=>(long)w.Length)??0));
                 InputSafety.Require(sampledCharacters<=InputSafety.MaxTextCharacters,"Nội dung bộ đề trích quá lớn.");
                 return new LibraryBank {Id=source.Id,SourceName=source.SourceName,Content=new WorkspaceBank {Title=source.Content.Title,Bank=chosen}};
             }).Where(source=>source.Content.Bank.Count>0).ToArray();
@@ -145,7 +145,7 @@ public sealed class MobileBankLibrary {
         static string OriginTitle(LibraryBank b)=>b.Content.Title.Length>200?b.Content.Title[..197]+"…":b.Content.Title;
         var pool=new List<(Question question,string origin)>();
         foreach(var source in sources)foreach(var q in source.Content.Bank){
-            var copy=new Question {Text=q.Text,Note=q.Note,Answer=q.Answer,OriginalAnswer=q.OriginalAnswer,AnswerSource=q.AnswerSource,NeedsReview=q.NeedsReview,Options=new(q.Options),Media=q.Media.Select(m=>m.Clone()).ToList(),ImportWarnings=new(q.ImportWarnings??new())};
+            var copy=new Question {IsEssay=q.IsEssay,Text=q.Text,Note=q.Note,Answer=q.Answer,OriginalAnswer=q.OriginalAnswer,AnswerSource=q.AnswerSource,NeedsReview=q.NeedsReview,Options=new(q.Options),Media=q.Media.Select(m=>m.Clone()).ToList(),ImportWarnings=new(q.ImportWarnings??new())};
             pool.Add((copy,$"{OriginTitle(source)}"+(imported?$" [{Array.IndexOf(sources,source)+1}: {source.SourceName}]":"")+$" · Câu gốc {q.Number}"));
         }
         if(shuffle){random??=Random.Shared;for(int i=pool.Count-1;i>0;i--){int j=random.Next(i+1);(pool[i],pool[j])=(pool[j],pool[i]);}}
@@ -208,6 +208,7 @@ public sealed class MobileBankLibrary {
             Change($"Câu {q.Number} · Nội dung",old.Text,q.Text);
             foreach(string key in old.Options.Keys.Union(q.Options.Keys).Order())Change($"Câu {q.Number} · Lựa chọn {key}",old.Options.GetValueOrDefault(key),q.Options.GetValueOrDefault(key));
             Change($"Câu {q.Number} · Media",MediaFiles.Describe(old.Media),MediaFiles.Describe(q.Media));
+            Change($"Câu {q.Number} · Loại câu hỏi",old.IsEssay,q.IsEssay);
             Change($"Câu {q.Number} · Đáp án đúng",old.Answer,q.Answer);Change($"Câu {q.Number} · Giải thích / ghi chú",old.Note,q.Note);
             Change($"Câu {q.Number} · Nguồn đáp án",old.AnswerSource,q.AnswerSource);Change($"Câu {q.Number} · Đáp án gốc",old.OriginalAnswer,q.OriginalAnswer);Change($"Câu {q.Number} · Cần xem lại",old.NeedsReview,q.NeedsReview);
             Change($"Câu {q.Number} · Cảnh báo khi nhập",string.Join("\n",old.ImportWarnings??new()),string.Join("\n",q.ImportWarnings??new()));

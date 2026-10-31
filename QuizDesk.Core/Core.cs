@@ -11,6 +11,7 @@ public class Question {
     public int Number;
     public string Text = "", Note = "", Answer = "";
     public string OriginalAnswer = "", AnswerSource = "";
+    public bool IsEssay;
     public bool NeedsReview;
     public List<string> ImportWarnings = new();
     public List<QuestionMedia> Media = new();
@@ -26,7 +27,7 @@ public class QuizSetup {
         if(!practice && setup.Count>pool.Count) throw new Exception("Số câu thi lớn hơn số câu đã chọn.");
         if(setup.ShuffleQuestions)rng.Shuffle(System.Runtime.InteropServices.CollectionsMarshal.AsSpan(pool));
         return pool.Take(practice?pool.Count:setup.Count).Select(q=>{
-            var copy=new Question {Number=q.Number,Text=q.Text,Note=q.Note,OriginalAnswer=q.OriginalAnswer,AnswerSource=q.AnswerSource,NeedsReview=q.NeedsReview,ImportWarnings=new(q.ImportWarnings??new())};
+            var copy=new Question {IsEssay=q.IsEssay,Number=q.Number,Text=q.Text,Note=q.Note,OriginalAnswer=q.OriginalAnswer,AnswerSource=q.AnswerSource,NeedsReview=q.NeedsReview,ImportWarnings=new(q.ImportWarnings??new())};
             string scoringAnswer=QuestionReview.ScoringAnswer(q);
             if(q.Media.Count>0)copy.Media=q.Media.Where(m=>m.Target=="question"||m.Target=="note").Select(m=>m.Clone()).ToList();
             var options=q.Options.ToList();
@@ -37,6 +38,7 @@ public class QuizSetup {
                 if(q.Media.Count>0)copy.Media.AddRange(q.Media.Where(m=>m.Target==options[i].Key).Select(m=>m.Clone(key)));
                 if(options[i].Key==scoringAnswer) copy.Answer=key;
             }
+            if(q.IsEssay)copy.Answer=q.Answer;
             return copy;
         }).ToList();
     }
@@ -50,7 +52,7 @@ public static class QuizFile {
         new XDocument(new XElement("quiz",new XAttribute("version",1),
             new XElement("settings",new XAttribute("count",s.Count),new XAttribute("minutes",s.Minutes),
                 new XAttribute("shuffleQuestions",s.ShuffleQuestions),new XAttribute("shuffleOptions",s.ShuffleOptions)),
-            bank.Select(q=>new XElement("question",new XAttribute("number",q.Number),new XAttribute("included",s.Included.Contains(q.Number)),
+            bank.Select(q=>new XElement("question",new XAttribute("essay",q.IsEssay),new XAttribute("number",q.Number),new XAttribute("included",s.Included.Contains(q.Number)),
                 new XElement("text",q.Text),new XElement("answer",q.Answer),new XElement("note",q.Note),
                 new XElement("originalAnswer",q.OriginalAnswer),new XElement("answerSource",q.AnswerSource),new XElement("needsReview",q.NeedsReview),
                 new XElement("importWarnings",(q.ImportWarnings??new()).Select(w=>new XElement("warning",w))),
@@ -69,12 +71,12 @@ public static class QuizFile {
         var list=new List<Question>();
         foreach(var el in root.Elements("question")) {
             InputSafety.Require(list.Count<InputSafety.MaxQuestions,"Tối đa 5.000 câu trong một bộ đề.");
-            var q=new Question {Number=(int)el.Attribute("number"),Text=(string)el.Element("text")??"",Answer=(string)el.Element("answer")??"",Note=(string)el.Element("note")??"",OriginalAnswer=(string)el.Element("originalAnswer")??"",AnswerSource=(string)el.Element("answerSource")??"",NeedsReview=(bool?)el.Element("needsReview")??false};
+            var q=new Question {IsEssay=(bool?)el.Attribute("essay")??false,Number=(int)el.Attribute("number"),Text=(string)el.Element("text")??"",Answer=(string)el.Element("answer")??"",Note=(string)el.Element("note")??"",OriginalAnswer=(string)el.Element("originalAnswer")??"",AnswerSource=(string)el.Element("answerSource")??"",NeedsReview=(bool?)el.Element("needsReview")??false};
             q.ImportWarnings=el.Element("importWarnings")?.Elements("warning").Select(w=>w.Value).ToList()??new();
             InputSafety.CheckQuestion(q);
             foreach(var o in el.Elements("option")) QuestionReview.AddChoice(q,(string)o.Attribute("key"),o.Value);
             QuestionReview.ApplyAnswerClaims(q,el.Elements("answer").Select(a=>a.Value),q.AnswerSource);InputSafety.CheckQuestion(q);
-            if(q.Number<1||string.IsNullOrWhiteSpace(q.Text)||q.Options.Count<2||q.Options.Count>8||q.Options.Any(o=>!SafeRegex.IsMatch(o.Key, "^[A-H]$")||string.IsNullOrWhiteSpace(o.Value))||(q.Answer!=""&&!q.Options.ContainsKey(q.Answer))) throw new Exception("Câu hỏi trong file không hợp lệ.");
+            if(q.Number<1||string.IsNullOrWhiteSpace(q.Text)||(!q.IsEssay&&q.Options.Count<2)||(q.IsEssay&&q.Options.Count!=0)||q.Options.Count>8||q.Options.Any(o=>!SafeRegex.IsMatch(o.Key, "^[A-H]$")||string.IsNullOrWhiteSpace(o.Value))||(!q.IsEssay&&q.Answer!=""&&!q.Options.ContainsKey(q.Answer))) throw new Exception("Câu hỏi trong file không hợp lệ.");
             list.Add(q); if((bool?)el.Attribute("included")==true)setup.Included.Add(q.Number);
         }
         if(list.GroupBy(q=>q.Number).Any(g=>g.Count()>1)||setup.Count<1||setup.Count>Math.Max(1,list.Count)||setup.Minutes<1||setup.Minutes>300)throw new Exception("Cấu hình bộ đề không hợp lệ.");
@@ -123,13 +125,14 @@ public static class Reader {
             Match q = SafeRegex.Match(line, @"^(?:Câu\s+(\d+)\s*[\.\:\)]?|(\d+)\s*[\.\)])\s+(.+)$", RegexOptions.IgnoreCase);
             if (q.Success) {
                 current = new Question { Number = int.Parse(q.Groups[1].Success ? q.Groups[1].Value : q.Groups[2].Value), Text=q.Groups[3].Value };
+                current.IsEssay=current.Text.StartsWith("[Tự luận]",StringComparison.OrdinalIgnoreCase);
                 InputSafety.Require(result.Count<InputSafety.MaxQuestions);result.Add(current);inline[current]=new();reviewed[current]=new(); option=null; continue;
             }
             if (current == null) continue;
             if(option=="ANSWER_DONE")continue;
             if(option=="ANSWER"){inline[current][^1]+="\n"+line;if(QuestionReview.HasResolvedClaim(current,inline[current][^1]))option="ANSWER_DONE";continue;}
             Match o = SafeRegex.Match(line, @"^([A-H])[\.\)]\s*(.+)$", RegexOptions.IgnoreCase);
-            if (o.Success) {
+            if (o.Success&&!current.IsEssay) {
                 option = o.Groups[1].Value.ToUpperInvariant();
                 option=QuestionReview.AddChoice(current,option,o.Groups[2].Value);
             } else if (option == "NOTE") current.Note += "\n"+line;
@@ -137,12 +140,13 @@ public static class Reader {
             else current.Text += "\n"+line;
         }
         foreach (var q in result) {
+            if(q.Text.StartsWith("[Tự luận]",StringComparison.OrdinalIgnoreCase)){q.IsEssay=true;q.Text=q.Text[9..].Trim();q.Answer=string.Join("\n",inline[q]);continue;}
             if(reviewed[q].Apply(q)){if(inline[q].Count>0||keys.ContainsKey(q.Number))QuestionReview.Warn(q,"Có thêm dòng/bảng đáp án ngoài đáp án gốc/rà soát. Hãy kiểm tra lại.");continue;}
             var claims=inline[q].Concat(keys.GetValueOrDefault(q.Number)??new()).ToList();
             QuestionReview.ApplyAnswerClaims(q,claims,keys.ContainsKey(q.Number)?"Dòng/bảng đáp án trong tài liệu":"Dòng đáp án trong câu");
         }
         if (result.GroupBy(q=>q.Number).Any(g=>g.Count()>1)) throw new Exception("Số câu bị trùng. Hãy nhập từng bộ đề riêng.");
-        if (result.Count == 0 || result.Any(q=>q.Options.Count<2)) throw new Exception("Chưa đọc được đủ câu hỏi và lựa chọn. Xem file đề mẫu; mỗi lựa chọn A., B., C., D. cần ở một dòng riêng.");
+        if (result.Count == 0 || result.Any(q=>!q.IsEssay&&q.Options.Count<2)) throw new Exception("Chưa đọc được đủ câu hỏi và lựa chọn. Xem file đề mẫu; mỗi lựa chọn A., B., C., D. cần ở một dòng riêng.");
         return result;
     }
 }

@@ -12,12 +12,12 @@ public partial class MainView {
             catch(Exception ex) when(ex is IOException||ex is UnauthorizedAccessException){Notify("Chưa lưu được lịch sử: "+ex.Message+". Bạn có thể thử lại trong mục Lịch sử.",true);}
         }
     }
-    static string ScoreText(ExamAttempt a)=>a.Score.HasValue?a.Score.Value.ToString("0.##")+" / 10":"Không tính điểm";
+    static string ScoreText(ExamAttempt a)=>(a.Score.HasValue?a.Score.Value.ToString("0.##")+" / 10":"Không tính điểm")+(a.Questions.Any(q=>q.IsEssay)?$" · {a.Graded}/{a.Questions.Count} câu đã chấm":"");
     static string DurationText(ExamAttempt a) {
         var elapsed=TimeSpan.FromSeconds(Math.Min(a.ElapsedSeconds,TimeSpan.MaxValue.TotalSeconds/2));
         return elapsed.TotalHours>=1?$"{(int)elapsed.TotalHours} giờ {elapsed.Minutes} phút {elapsed.Seconds} giây":$"{(int)elapsed.TotalMinutes} phút {elapsed.Seconds} giây";
     }
-    static string OutcomeText(AttemptQuestion q)=>q.Outcome switch {"correct"=>"Đúng","wrong"=>"Sai","unanswered"=>"Bỏ trống",_=>"Không tính điểm"};
+    static string OutcomeText(AttemptQuestion q)=>q.IsEssay&&!q.ManualCorrect.HasValue?"Tự luận · Chưa tự chấm":q.Outcome switch {"correct"=>"Đúng","wrong"=>"Sai","unanswered"=>"Bỏ trống",_=>"Không tính điểm"};
     static string SummaryText(ExamAttempt a)=>$"{a.Correct} đúng · {a.Wrong} sai · {a.Unanswered} bỏ trống · {a.Unscored} không tính điểm";
     void HistoryPage() {
         Heading("Nhìn lại quá trình học","Lịch sử thi thử","Mỗi lần nộp bài hoặc hết giờ đều được tự động lưu trên máy, kèm câu hỏi và đáp án tại thời điểm thi.");
@@ -45,21 +45,32 @@ public partial class MainView {
             for(int i=0;i<attempt.Questions.Count;i++) {
                 var q=attempt.Questions[i];if(outcome!=""&&q.Outcome!=outcome)continue;
                 string text=q.Text+"\n\n"+string.Join("\n",q.Options.Select(o=>o.Key+". "+o.Value+(o.Key==q.Answer?"  [Đáp án đúng]":"")+(o.Key==q.Picked?"  [Bạn chọn]":"")))+
-                    "\n\nBạn chọn: "+(q.Picked==""?"Bỏ trống":q.Picked)+"\nĐáp án đúng: "+(q.Answer==""?"Không có đáp án để tính điểm":q.Answer)+(string.IsNullOrWhiteSpace(q.Note)?"":"\n\nGiải thích / ghi chú:\n"+q.Note);
+                    "\n\n"+(q.IsEssay?"Bài làm: ":"Bạn chọn: ")+(q.Picked==""?"Bỏ trống":q.Picked)+"\n"+(q.IsEssay?"Đáp án mẫu: ":"Đáp án đúng: ")+(q.Answer==""?"Không có đáp án để tính điểm":q.Answer)+(string.IsNullOrWhiteSpace(q.Note)?"":"\n\nGiải thích / ghi chú:\n"+q.Note);
                 var detail=new Expander {Header=$"Câu {i+1} (câu gốc {q.Number}) · {OutcomeText(q)}",IsExpanded=shown==0,HorizontalAlignment=HorizontalAlignment.Stretch,HorizontalContentAlignment=HorizontalAlignment.Stretch};
-                void Populate(){detail.Content=detail.IsExpanded?Stack(Text(text,15),Gallery(q.Media)):null;}
+                void Populate(){
+                    if(!detail.IsExpanded){detail.Content=null;return;}
+                    var content=Stack(Text(text,15),Gallery(q.Media));
+                    if(q.IsEssay)content.Children.Add(Stack(Text("Tự chấm theo đáp án mẫu: Đúng = 1 điểm câu, Sai = 0; chưa chấm được loại khỏi điểm tổng.",13),
+                        Row(Btn("Tự chấm: Đúng",()=>GradeEssay(attempt,q,true)),Btn("Tự chấm: Sai",()=>GradeEssay(attempt,q,false)),Btn("Bỏ tự chấm",()=>GradeEssay(attempt,q,null)))));
+                    detail.Content=content;
+                }
                 detail.PropertyChanged+=(_,e)=>{if(e.Property==Expander.IsExpandedProperty)Populate();};Populate();questions.Children.Add(detail);shown++;
             }
             if(shown==0)questions.Children.Add(Text("Không có câu hỏi thuộc nhóm này."));
         }
         filter.SelectionChanged+=(_,_)=>Fill();Fill();pageScroll.Offset=default;
     }
+    void GradeEssay(ExamAttempt attempt,AttemptQuestion question,bool? correct) {
+        var previous=question.ManualCorrect;question.ManualCorrect=correct;
+        try{historyStore.Save(attempt);ShowAttempt(attempt);}
+        catch(Exception ex) when(ex is IOException||ex is UnauthorizedAccessException||ex is InvalidDataException){question.ManualCorrect=previous;Notify("Chưa lưu được tự chấm: "+ex.Message,true);}
+    }
     static string AttemptReport(ExamAttempt attempt) {
         var text=new StringBuilder(attempt.Title+"\n"+attempt.FinishedAt.ToLocalTime().ToString("dd/MM/yyyy HH:mm:ss")+"\n"+ScoreText(attempt)+"\n"+SummaryText(attempt)+"\n\n");
         for(int i=0;i<attempt.Questions.Count;i++) {
             var q=attempt.Questions[i];text.AppendLine($"Câu {i+1} (câu gốc {q.Number}) · {OutcomeText(q)}\n{q.Text}\n");
             foreach(var option in q.Options)text.AppendLine(option.Key+". "+option.Value);
-            text.AppendLine("Bạn chọn: "+(q.Picked==""?"Bỏ trống":q.Picked)+"\nĐáp án đúng: "+(q.Answer==""?"Không tính điểm":q.Answer)+"\n"+q.Note+"\n");
+            text.AppendLine((q.IsEssay?"Bài làm: ":"Bạn chọn: ")+(q.Picked==""?"Bỏ trống":q.Picked)+"\n"+(q.IsEssay?"Đáp án mẫu: ":"Đáp án đúng: ")+(q.Answer==""?"Không tính điểm":q.Answer)+"\n"+q.Note+"\n");
         }return text.ToString();
     }
 }

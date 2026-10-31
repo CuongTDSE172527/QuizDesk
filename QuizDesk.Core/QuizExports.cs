@@ -19,10 +19,10 @@ public static class QuizExports {
         Importers.Validate(bank.ToList());
         if(format=="docx")return OfficeQuizExports.Document(bank,title,answers);
         if(format=="xlsx")return OfficeQuizExports.Spreadsheet(bank,title,answers);
-        string Answer(Question q)=>answers?QuestionReview.ScoringAnswer(q):"";
+        string Answer(Question q)=>answers?(q.IsEssay?q.Answer:QuestionReview.ScoringAnswer(q)):"";
         string Note(Question q)=>answers?q.Note:"";
         if(format=="json")return JsonSerializer.SerializeToUtf8Bytes(new {title,questions=bank.Select(q=>new {
-            number=q.Number,text=q.Text,options=q.Options,answer=Answer(q),note=Note(q),
+            isEssay=q.IsEssay,number=q.Number,text=q.Text,options=q.Options,answer=Answer(q),note=Note(q),
             originalAnswer=answers?q.OriginalAnswer:"",answerSource=answers?q.AnswerSource:"",needsReview=q.NeedsReview,
             importWarnings=answers?q.ImportWarnings:new List<string>(),media=q.Media.Where(m=>answers||m.Target!="note")
         })},new JsonSerializerOptions {WriteIndented=true});
@@ -35,12 +35,12 @@ public static class QuizExports {
                 return "\""+text.Replace("\"","\"\"")+"\"";
             }
             var rows=new List<string>{string.Join(separator,new[]{"number","text","A","B","C","D","E","F","G","H","answer","note"}.Select(Cell))};
-            foreach(var q in bank)rows.Add(string.Join(separator,new[]{q.Number.ToString(System.Globalization.CultureInfo.InvariantCulture),q.Text}.Concat(Enumerable.Range(0,8).Select(i=>q.Options.GetValueOrDefault(((char)('A'+i)).ToString(),""))).Concat(new[]{Answer(q),Note(q)}).Select(Cell)));
+            foreach(var q in bank)rows.Add(string.Join(separator,new[]{q.Number.ToString(System.Globalization.CultureInfo.InvariantCulture),(q.IsEssay?"[Tự luận] ":"")+q.Text}.Concat(Enumerable.Range(0,8).Select(i=>q.Options.GetValueOrDefault(((char)('A'+i)).ToString(),""))).Concat(new[]{Answer(q),Note(q)}).Select(Cell)));
             return new UTF8Encoding(true).GetPreamble().Concat(Encoding.UTF8.GetBytes(string.Join("\r\n",rows)+"\r\n")).ToArray();
         }
         if(format=="txt"){
             var text=new StringBuilder();text.AppendLine(title).AppendLine();
-            foreach(var q in bank){text.AppendLine($"Câu {q.Number}. {q.Text}");foreach(var option in q.Options)text.AppendLine($"{option.Key}. {option.Value}");if(answers){text.AppendLine("Đáp án: "+(Answer(q)==""?"Chưa xác nhận":Answer(q)));if(q.Note!="")text.AppendLine("Giải thích: "+q.Note);}text.AppendLine();}
+            foreach(var q in bank){text.AppendLine($"Câu {q.Number}. {(q.IsEssay?"[Tự luận] ":"")}{q.Text}");foreach(var option in q.Options)text.AppendLine($"{option.Key}. {option.Value}");if(answers){text.AppendLine("Đáp án: "+(Answer(q)==""?"Chưa xác nhận":Answer(q)));if(q.Note!="")text.AppendLine("Giải thích: "+q.Note);}text.AppendLine();}
             return Encoding.UTF8.GetBytes(text.ToString());
         }
         if(format=="html"){

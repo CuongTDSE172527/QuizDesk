@@ -172,7 +172,7 @@ public static partial class WordReader {
             var q=SafeRegex.Match(line,@"^(?:Câu\s+(\d+)\s*[.:)]?|(\d+)\s*[.)])\s*(.*)$",RegexOptions.IgnoreCase);
             bool autoQuestion=ListFormat(p) is "decimal" or "decimalZero";
             if((q.Success&&!IsLetterList(p))||autoQuestion) {
-                InputSafety.Require(result.Count<InputSafety.MaxQuestions);current=new Question {Number=autoQuestion?(result.Count==0?1:result.Max(x=>x.Number)+1):int.Parse(q.Groups[1].Success?q.Groups[1].Value:q.Groups[2].Value),Text=autoQuestion?line:q.Groups[3].Value};result.Add(current);option=null;noteMode=false;answerMode=false;answerFinished=false;
+                InputSafety.Require(result.Count<InputSafety.MaxQuestions);current=new Question {Number=autoQuestion?(result.Count==0?1:result.Max(x=>x.Number)+1):int.Parse(q.Groups[1].Success?q.Groups[1].Value:q.Groups[2].Value),Text=autoQuestion?line:q.Groups[3].Value};current.IsEssay=current.Text.StartsWith("[Tự luận]",StringComparison.OrdinalIgnoreCase);result.Add(current);option=null;noteMode=false;answerMode=false;answerFinished=false;
                 bold[current]=new HashSet<string>();highlighted[current]=new HashSet<string>();inline[current]=new();reviewed[current]=new();Attach(p,"question");continue;
             }
             if(current==null)continue;
@@ -184,7 +184,7 @@ public static partial class WordReader {
             if(answerFinished){Attach(p,"note");continue;}
             if(answerMode){Attach(p,"note");inline[current][^1]+="\n"+line;answerFinished=QuestionReview.HasResolvedClaim(current,inline[current][^1]);answerMode=!answerFinished;continue;}
             var o=SafeRegex.Match(line,@"^([A-H])[.)]\s*(.*)$",RegexOptions.IgnoreCase|RegexOptions.Singleline);
-            if(o.Success||IsLetterList(p)) {
+            if(!current.IsEssay&&(o.Success||IsLetterList(p))) {
                 option=o.Success?o.Groups[1].Value.ToUpperInvariant():((char)('A'+current.Options.Count)).ToString();
                 option=QuestionReview.AddChoice(current,option,o.Success?o.Groups[2].Value:line);
                 if(string.IsNullOrWhiteSpace(current.Options[option])&&p.Descendants().Any(e=>e.Name.LocalName is "blip" or "imagedata" or "videoFile"))current.Options[option]="(Xem media)";
@@ -194,6 +194,7 @@ public static partial class WordReader {
         }
         var repeated=result.GroupBy(q=>q.Number).Where(g=>g.Count()>1).Select(g=>g.Key).ToHashSet();
         foreach(var q in result) {
+            if(q.Text.StartsWith("[Tự luận]",StringComparison.OrdinalIgnoreCase)){q.IsEssay=true;q.Text=q.Text[9..].Trim();q.Answer=string.Join("\n",inline[q]);continue;}
             if(string.IsNullOrWhiteSpace(q.Text)&&q.Media.Any(m=>m.Target=="question"))q.Text="Xem hình ảnh / video và chọn đáp án.";
             if(bold[q].Count==1)q.OriginalAnswer=bold[q].Single();
             if(tableKeys.ContainsKey(q.Number)&&repeated.Contains(q.Number)){
@@ -228,7 +229,7 @@ public static partial class WordReader {
                 }
         }
         // Text-only documents may use a compact answer section; retain the established parser for those.
-        if(tableKeys.Count==0&&result.Any(q=>q.Options.Count<2)&&result.All(q=>q.Media.Count==0))return Reader.Parse(string.Join("\n",doc.Descendants(W+"p").Select(Plain)));
+        if(tableKeys.Count==0&&result.Any(q=>!q.IsEssay&&q.Options.Count<2)&&result.All(q=>q.Media.Count==0))return Reader.Parse(string.Join("\n",doc.Descendants(W+"p").Select(Plain)));
         if(allowRepeatedNumbers&&repeated.Count>0)for(int i=0;i<result.Count;i++){
             var q=result[i];if(q.Number!=i+1)q.Text=$"[Câu gốc {q.Number}]\n{q.Text}";q.Number=i+1;
         }

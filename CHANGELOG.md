@@ -1,3 +1,13 @@
+# QuizDesk 5.17.5 — 31/10/2026
+
+- Biên soạn câu tự luận với đáp án mẫu; hỗ trợ bộ đề tự luận hoặc trộn với trắc nghiệm.
+- Ôn tập: nhập bài làm nhiều dòng, chủ động xem/ẩn đáp án mẫu, lưu và tiếp tục bài làm.
+- Thi thử: giữ kín đáp án mẫu tới khi nộp, lưu bài làm trong Lịch sử; tự chấm Đúng/Sai
+  theo đáp án mẫu (trọng số bằng nhau) hoặc bỏ tự chấm. Tự luận chưa chấm không vào điểm tự động.
+- Nhập tài liệu có nhãn [Tự luận] sau số câu; giữ loại câu và đáp án mẫu trong .quiz,
+  JSON, TXT, CSV/TSV, DOCX và XLSX. Không tự suy đoán câu lỗi thiếu lựa chọn là tự luận.
+- Đồng bộ version 5.17.5; Android versionCode 60119, iOS build 34.
+
 # QuizDesk 5.17.4 — 31/10/2026
 
 - Ôn tập: ô số câu đã trả lời đúng có nền xanh và ✓; trả lời sai có nền đỏ và ×.

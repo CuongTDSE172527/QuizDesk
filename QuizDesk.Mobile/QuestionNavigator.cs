@@ -28,7 +28,7 @@ public partial class MainView {
         jumpStart=start;
         for(int i=0;i<jumpButtons.Count;i++){
             int target=start+i;var button=jumpButtons[i];button.IsVisible=target<exam.Count;
-            bool graded=practice&&target<exam.Count&&answers.ContainsKey(target)&&exam[target].Answer!="";
+            bool graded=practice&&target<exam.Count&&!exam[target].IsEssay&&answers.ContainsKey(target)&&exam[target].Answer!="";
             bool correct=graded&&answers[target]==exam[target].Answer,wrong=graded&&!correct;
             button.Classes.Set("correct",correct);button.Classes.Set("wrong",wrong);
             button.Tag=target;button.Content=(target+1)+(flaggedQuestions.Contains(target)?" ★":"")+(correct?" ✓":wrong?" ×":"");

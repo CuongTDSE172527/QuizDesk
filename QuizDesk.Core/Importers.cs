@@ -46,6 +46,7 @@ public static class Importers {
             foreach(var item in array.EnumerateArray()) {
                 InputSafety.Require(questions.Count<InputSafety.MaxQuestions);
                 var q=new Question {Number=questions.Count+1,Text=item.GetProperty("text").GetString()??""};
+                if(item.TryGetProperty("isEssay",out var essay))q.IsEssay=essay.GetBoolean();
                 if(item.TryGetProperty("number",out var number))q.Number=number.GetInt32();
                 if(item.TryGetProperty("answer",out var answer))q.Answer=(answer.GetString()??"").Trim().ToUpperInvariant();
                 if(item.TryGetProperty("note",out var note))q.Note=note.GetString()??"";
@@ -123,9 +124,9 @@ public static class Importers {
         MediaFiles.CheckBank(questions);
         if(questions.GroupBy(q=>q.Number).Any(g=>g.Count()>1))throw new InvalidDataException("Số câu bị trùng.");
         foreach(var q in questions) {
-            if(q.Number<1||string.IsNullOrWhiteSpace(q.Text)||q.Options.Count<2||q.Options.Count>8||q.Options.Any(o=>!SafeRegex.IsMatch(o.Key,"^[A-H]$")||string.IsNullOrWhiteSpace(o.Value)))
+            if(q.Number<1||string.IsNullOrWhiteSpace(q.Text)||(!q.IsEssay&&q.Options.Count<2)||(q.IsEssay&&q.Options.Count!=0)||q.Options.Count>8||q.Options.Any(o=>!SafeRegex.IsMatch(o.Key,"^[A-H]$")||string.IsNullOrWhiteSpace(o.Value)))
                 throw new InvalidDataException("Câu "+q.Number+" cần nội dung và 2–8 lựa chọn A–H.");
-            if(q.Answer!=""&&!q.Options.ContainsKey(q.Answer))throw new InvalidDataException("Đáp án câu "+q.Number+" không nằm trong các lựa chọn.");
+            if(!q.IsEssay&&q.Answer!=""&&!q.Options.ContainsKey(q.Answer))throw new InvalidDataException("Đáp án câu "+q.Number+" không nằm trong các lựa chọn.");
         }
     }
     public static List<List<string>> Csv(string text,char delimiter) {
@@ -157,6 +158,7 @@ public static class Importers {
             int n=result.Count+1;string number=Cell(row,numberCol);
             if(number!=""&&!int.TryParse(number,out n))throw new Exception("Số câu không hợp lệ ở dòng "+(result.Count+2));
             var q=new Question {Number=n,Text=Cell(row,textCol),Note=Cell(row,noteCol)};
+            if(q.Text.StartsWith("[Tự luận]",StringComparison.OrdinalIgnoreCase)){q.IsEssay=true;q.Text=q.Text[9..].Trim();}
             for(int col=0;col<headers.Count;col++)if(SafeRegex.IsMatch(headers[col],"^[a-h]$")){string value=Cell(row,col);if(value!="")QuestionReview.AddChoice(q,headers[col],value);}
             QuestionReview.ApplyAnswerClaims(q,headers.Select((h,i)=>(h,i)).Where(p=>p.h=="answer"||p.h=="đáp án").Select(p=>Cell(row,p.i)),"Bảng dữ liệu");
             result.Add(q);
