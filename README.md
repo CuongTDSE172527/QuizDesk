@@ -1,4 +1,4 @@
-# QuizDesk 5.17.3 — Windows, macOS, Android và mã nguồn iOS
+# QuizDesk 5.17.4 — Windows, macOS, Android và mã nguồn iOS
 
 Word tổng hợp nhiều môn: khi nhập DOCX (hoặc DOC được chuyển đổi), ứng dụng bỏ qua
 mục lục Word và tạo một bộ đề cho mỗi tiêu đề môn/phần. Dùng Heading 1 cho tiêu đề môn
@@ -545,8 +545,8 @@ trên PC/mobile, không cần cài Microsoft Office, LibreOffice, không gọi s
 - Không thêm định dạng cũ XLS/DOC trong đợt này. .quiz vẫn là bản sao lưu đầy đủ
   nhất cho media, cấu hình thi và thông tin cần rà soát của QuizDesk.
 
-Version hiển thị là **5.17.3**, Android versionCode **60117**, iOS build **32**.
-Chạy Actions với version/tag `v5.17.3`, hoặc để trống tag ở lượt chạy thủ công sau
+Version hiển thị là **5.17.4**, Android versionCode **60118**, iOS build **33**.
+Chạy Actions với version/tag `v5.17.4`, hoặc để trống tag ở lượt chạy thủ công sau
 khi commit/push source. Bộ đóng gói macOS tự đọc version từ project Desktop.
 
 ## Tự động build khi push
@@ -637,3 +637,9 @@ Nhấn Đánh dấu xem lại ở câu chưa chắc chắn. Số câu có ★ đ
 Câu đánh dấu tiếp đi qua các dấu theo thứ tự và quay vòng về đầu, kể cả khác trang.
 Có thể bỏ dấu sau khi kiểm tra. Chọn đáp án không tự bỏ dấu, dấu không ảnh hưởng
 chấm điểm và được khôi phục cùng bài thi đang làm sau khi mở lại app.
+
+## Xem lại đúng/sai trong ôn tập (5.17.4)
+
+Ô số câu đã trả lời đúng có nền xanh kèm ✓, trả lời sai có nền đỏ kèm ×.
+Câu chưa trả lời hoặc chưa có đáp án xác nhận giữ màu trung tính.
+Trạng thái này được khôi phục khi tiếp tục lượt ôn đã lưu và không xuất hiện trong thi thử.

@@ -1,3 +1,11 @@
+# QuizDesk 5.17.4 — 31/10/2026
+
+- Ôn tập: ô số câu đã trả lời đúng có nền xanh và ✓; trả lời sai có nền đỏ và ×.
+- Câu chưa trả lời hoặc chưa có đáp án xác nhận giữ màu trung tính. Màu được
+  cập nhật khi trả lời, đổi trang số câu và tiếp tục lượt ôn đã lưu.
+- Hỗ trợ giao diện sáng/tối; thi thử tiếp tục ẩn trạng thái đúng/sai trước khi nộp bài.
+- Đồng bộ version 5.17.4; Android versionCode 60118, iOS build 33.
+
 # QuizDesk 5.17.3 — 30/10/2026
 
 - Thi thử: đánh dấu/bỏ đánh dấu câu chưa chắc chắn; số câu có dấu ★ để nhận biết.

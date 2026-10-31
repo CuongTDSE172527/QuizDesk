@@ -28,8 +28,11 @@ public partial class MainView {
         jumpStart=start;
         for(int i=0;i<jumpButtons.Count;i++){
             int target=start+i;var button=jumpButtons[i];button.IsVisible=target<exam.Count;
-            button.Tag=target;button.Content=(target+1)+(flaggedQuestions.Contains(target)?" ★":"");
-            Avalonia.Automation.AutomationProperties.SetName(button,"Câu "+(target+1)+(flaggedQuestions.Contains(target)?" · Đã đánh dấu xem lại":"")+(answers.ContainsKey(target)?" · Đã trả lời":" · Chưa trả lời"));
+            bool graded=practice&&target<exam.Count&&answers.ContainsKey(target)&&exam[target].Answer!="";
+            bool correct=graded&&answers[target]==exam[target].Answer,wrong=graded&&!correct;
+            button.Classes.Set("correct",correct);button.Classes.Set("wrong",wrong);
+            button.Tag=target;button.Content=(target+1)+(flaggedQuestions.Contains(target)?" ★":"")+(correct?" ✓":wrong?" ×":"");
+            Avalonia.Automation.AutomationProperties.SetName(button,"Câu "+(target+1)+(flaggedQuestions.Contains(target)?" · Đã đánh dấu xem lại":"")+(correct?" · Trả lời đúng":wrong?" · Trả lời sai":answers.ContainsKey(target)?" · Đã trả lời":" · Chưa trả lời"));
             button.IsChecked=answers.ContainsKey(target);button.Classes.Set("current",target==index);
         }
         UpdateFlagControls();

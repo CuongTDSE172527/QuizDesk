@@ -4,7 +4,7 @@
     <SupportedOSPlatformVersion>26</SupportedOSPlatformVersion>
     <ImplicitUsings>enable</ImplicitUsings><Nullable>disable</Nullable>
     <ApplicationId>com.quizdesk.mobile</ApplicationId><ApplicationTitle>QuizDesk</ApplicationTitle>
-    <ApplicationVersion>60117</ApplicationVersion><ApplicationDisplayVersion>5.17.3</ApplicationDisplayVersion>
+    <ApplicationVersion>60118</ApplicationVersion><ApplicationDisplayVersion>5.17.4</ApplicationDisplayVersion>
     <AndroidPackageFormats>apk</AndroidPackageFormats><AndroidEnableProfiledAot>false</AndroidEnableProfiledAot>
     <RunAOTCompilation>false</RunAOTCompilation><PublishTrimmed>false</PublishTrimmed>
     <AndroidUseSharedRuntime>false</AndroidUseSharedRuntime>

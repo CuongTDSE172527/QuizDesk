@@ -157,6 +157,10 @@
   <Style Selector="Button.qd.nav.selected /template/ Border#StateLayer"><Setter Property="Background" Value="{DynamicResource QDStateLayer}" /></Style>
   <Style Selector="ToggleButton.choice:pressed"><Setter Property="Background" Value="{DynamicResource QDSecondaryContainer}" /></Style>
   <Style Selector="ToggleButton.jump"><Setter Property="CornerRadius" Value="8" /></Style>
+  <Style Selector="ToggleButton.jump.correct"><Setter Property="Background" Value="{DynamicResource QDSuccessContainer}" /><Setter Property="Foreground" Value="{DynamicResource QDOnSuccessContainer}" /><Setter Property="BorderBrush" Value="{DynamicResource QDOnSuccessContainer}" /></Style>
+  <Style Selector="ToggleButton.jump.correct TextBlock"><Setter Property="Foreground" Value="{DynamicResource QDOnSuccessContainer}" /></Style>
+  <Style Selector="ToggleButton.jump.wrong"><Setter Property="Background" Value="{DynamicResource QDErrorContainer}" /><Setter Property="Foreground" Value="{DynamicResource QDOnErrorContainer}" /><Setter Property="BorderBrush" Value="{DynamicResource QDOnErrorContainer}" /></Style>
+  <Style Selector="ToggleButton.jump.wrong TextBlock"><Setter Property="Foreground" Value="{DynamicResource QDOnErrorContainer}" /></Style>
   <Style Selector="ToggleButton.jump.current"><Setter Property="BorderBrush" Value="{DynamicResource QDPrimary}" /></Style>
   <Style Selector="Border.hero"><Setter Property="Background" Value="{DynamicResource QDPrimaryContainer}" /></Style>
   <Style Selector="Button.qd:focus-visible /template/ Border#StateLayer"><Setter Property="BoxShadow" Value="0 0 0 3 #808394E7" /></Style>

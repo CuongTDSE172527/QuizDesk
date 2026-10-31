@@ -26,6 +26,7 @@ public partial class MainView {
             if(phase=="word-symbols"){File.WriteAllText(result,await VerifyWordSymbols());return;}
             if(phase=="aero"){File.WriteAllText(result,await VerifyAero());return;}
             if(phase.StartsWith("motion")){File.WriteAllText(result,await VerifyMotion(phase));return;}
+            if(phase.StartsWith("practice-colors")){File.WriteAllText(result,await VerifyPracticeColors(phase));return;}
             if(phase.StartsWith("practice")){File.WriteAllText(result,await VerifyPractice(phase));return;}
             if(phase=="recognition"){File.WriteAllText(result,await VerifyRecognition());return;}
             if(phase.StartsWith("merge")){File.WriteAllText(result,await VerifyMerge(phase));return;}
