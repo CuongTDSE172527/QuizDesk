@@ -43,10 +43,6 @@ public partial class MainView {
         Tone(chip,Border.BackgroundProperty,"SecondaryContainer");return chip;
     }
     static TextBlock Supporting(string text,double size=14) {var label=Text(text,size);label.Classes.Add("supporting");return label;}
-    Control Metric(string value,string label) {
-        var number=Text(value,30);number.Classes.Add("primary");
-        return Card(Stack(number,Supporting(label,12)));
-    }
     void SetDestination(string key) {
         foreach(var pair in navButtons) {
             pair.Value.Classes.Set("selected",pair.Key==key);

@@ -140,29 +140,15 @@ public partial class MainView : UserControl {
     }
     OverlayDialog Dialog(string heading)=>new(this,heading);
     Task<bool> ConfirmLeave()=>Task.FromResult(!active&&!studying&&PersistBank());
-    void Home() {
-        Heading("Học theo cách của bạn","Sẵn sàng cho bài thi?","Từ tài liệu có sẵn đến một bài kiểm tra của riêng bạn.");
-        var heroTitle=Text("Mang tài liệu.\nBắt đầu luyện tập.",28);heroTitle.Classes.Add("onHero");
-        var heroBody=Text("Nhập đề có hoặc chưa có đáp án, biên soạn và học từng câu theo nhịp của bạn.",15);heroBody.Classes.Add("onHero");
-        var import=Btn("＋ Nhập file đề",Import,true);import.HorizontalAlignment=HorizontalAlignment.Left;
-        var hero=new Border {Padding=new Thickness(24),CornerRadius=new CornerRadius(16),Child=new StackPanel {Spacing=16,Children={Chip("KHÔNG GIAN ÔN TẬP"),heroTitle,heroBody,import}}};
-        hero.Classes.Add("hero");hero.BorderThickness=new Thickness(1);Tone(hero,Border.BorderBrushProperty,"OutlineVariant");Tone(hero,Border.BackgroundProperty,"PrimaryContainer");page.Children.Add(hero);
-        var metrics=new Grid {ColumnDefinitions=new ColumnDefinitions("*,*,*"),ColumnSpacing=8};
-        string[] labels={"Câu hỏi","Đã chọn","Thiếu đáp án"};int[] counts={bank.Count,setup.Included.Count,bank.Count(q=>q.Answer=="")};
-        for(int i=0;i<3;i++){var metric=Metric(counts[i].ToString(),labels[i]);Grid.SetColumn(metric,i);metrics.Children.Add(metric);}page.Children.Add(metrics);
-        page.Children.Add(Text("Tiếp tục học",22));
-        var open=Btn(bank.Count==0?"Tự soạn bộ đề":"Mở bộ câu hỏi",bank.Count==0?NewBank:()=>Navigate("bank"));open.Classes.Add("tonal");
-        page.Children.Add(Card(Stack(Chip(bank.Count==0?"CHƯA CÓ BỘ ĐỀ":"BỘ ĐỀ HIỆN TẠI"),Text(title,22),Supporting(bank.Count==0?"Thêm câu hỏi theo ý bạn hoặc khám phá bộ mẫu trước.":"Bản nháp được tự động lưu. Chọn một chế độ để tiếp tục."),Row(open,Btn("Thử bộ mẫu",LoadSample)))));
-        page.Children.Add(Supporting("Word · PDF · Excel · Văn bản · .quiz",12));
-    }
     async void NewBank(){
         if(busy||!await ConfirmLeave())return;
         try {var empty=new List<Question>();AdoptBank(library.Create(new WorkspaceBank {Title="Bộ đề mới",Bank=empty,Setup=preferences.CreateSetup(empty),HasUnexportedChanges=true}));selectingBanks=false;selectedBanks.Clear();RememberSelectedBank();Navigate("bank");expandedBankId=currentBankId;Navigate("bank");}
         catch(Exception ex){Notify("Không tạo được bộ đề: "+ex.Message,true);}
     }
-    async void LoadSample() {
+    async void LoadSample()=>await LoadSample(false);
+    async Task LoadSample(bool startPractice) {
         if(busy||!await ConfirmLeave())return;
-        try {using var input=AssetLoader.Open(new Uri("avares://QuizDesk.Mobile/Assets/De-mau.txt"));string path=await MobileImportCache.CopyAsync(input,"De-mau.txt",Path.Combine(dataRoot,"ImportCache"));try{await Load(path,"Đề mẫu");}finally{File.Delete(path);}}
+        try {using var input=AssetLoader.Open(new Uri("avares://QuizDesk.Mobile/Assets/De-mau.txt"));string path=await MobileImportCache.CopyAsync(input,"De-mau.txt",Path.Combine(dataRoot,"ImportCache"));try{await Load(path,"Đề mẫu",startPractice);}finally{File.Delete(path);}}
         catch(System.Text.RegularExpressions.RegexMatchTimeoutException){Notify("Tài liệu có cấu trúc văn bản xử lý quá lâu. Hãy chia nhỏ hoặc lưu lại file trước khi nhập.",true);}catch(Exception ex){Notify(ex.Message,true);}
     }
     async void Import() {
@@ -176,7 +162,8 @@ public partial class MainView : UserControl {
             try{await Load(path,files[0].Name);}finally{File.Delete(path);}
         }catch(Exception ex){busy=false;Notify(ex.Message,true);}finally{if(!active)shell.IsEnabled=true;}
     }
-    async Task Load(string path,string displayName=null) {
+    async Task Load(string path,string displayName=null,bool startPractice=false) {
+        bool readyToPractice=false;
         if(busy)return;busy=true;shell.IsEnabled=false;navigation.IsEnabled=false;Notify("Đang đọc file: "+(displayName??Path.GetFileName(path)));
         try {
             var imports=await Task.Run(()=>Importers.LoadBanks(path,displayName??Path.GetFileName(path)));
@@ -186,10 +173,16 @@ public partial class MainView : UserControl {
                 if(!Path.GetExtension(path).Equals(".quiz",StringComparison.OrdinalIgnoreCase))imported.Content.Setup=preferences.CreateSetup(imported.Content.Bank);
                 var saved=await Task.Run(()=>library.Create(imported.Content,imported.SourceName,true));document??=saved;
             }
-            AdoptBank(document);selectingBanks=false;selectedBanks.Clear();RememberSelectedBank();expandedBankId=null;Navigate("bank");
+            AdoptBank(document);selectingBanks=false;selectedBanks.Clear();RememberSelectedBank();expandedBankId=null;
+            if(startPractice){readyToPractice=true;return;}
+            Navigate("bank");
             var all=imports.SelectMany(i=>i.Content.Bank).ToList();
             Notify($"Đã nhập {all.Count} câu vào {imports.Count} bộ đề{(imports.Count>1?" theo từng môn":"")} • {all.Count(q=>q.Note!="")} câu có giải thích/ghi chú • {all.Count(QuestionReview.RequiresReview)} câu cần sửa/bổ sung • {all.Count(q=>QuestionReview.ScoringAnswer(q)=="")} câu chưa tính điểm. Mở bộ đề và chọn Chỉ hiện câu cần sửa để kiểm tra.");
-        }catch(System.Text.RegularExpressions.RegexMatchTimeoutException){Notify("Tài liệu có cấu trúc văn bản xử lý quá lâu. Hãy chia nhỏ hoặc lưu lại file trước khi nhập.",true);}catch(Exception ex){Notify(ex.Message,true);}finally{busy=false;navigation.IsEnabled=true;shell.IsEnabled=true;IncomingChanged();}
+        }catch(System.Text.RegularExpressions.RegexMatchTimeoutException){Notify("Tài liệu có cấu trúc văn bản xử lý quá lâu. Hãy chia nhỏ hoặc lưu lại file trước khi nhập.",true);}catch(Exception ex){Notify(ex.Message,true);}finally {
+            busy=false;navigation.IsEnabled=true;shell.IsEnabled=true;
+            if(readyToPractice)Start(true);
+            IncomingChanged();
+        }
     }
     async void Save() {
         string temp=Path.Combine(dataRoot,"export-"+Guid.NewGuid().ToString("N")+".quiz");
@@ -320,6 +313,7 @@ public partial class MainView : UserControl {
     }
     void Start(bool isPractice) {
         try{exam=QuizSetup.Build(bank,setup,isPractice,new Random());}catch(Exception ex){Notify(ex.Message,true);return;}
+        currentPage="setup";SetDestination("setup");
         examTitle=title;examMinutes=setup.Minutes;examBankId=currentBankId;
         flaggedQuestions.Clear();answers.Clear();index=0;practice=isPractice;active=true;activeAttemptId=Guid.NewGuid();deadline=DateTime.Now.AddMinutes(setup.Minutes);notice.IsVisible=false;navigation.IsEnabled=false;
         startedAt=DateTimeOffset.Now;attemptWatch.Restart();BeginCheckpoint();

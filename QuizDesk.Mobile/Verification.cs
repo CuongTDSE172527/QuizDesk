@@ -22,6 +22,7 @@ public partial class MainView {
         string phase=Environment.GetEnvironmentVariable("QUIZDESK_MOBILE_QA_PHASE")??"first";
         string result=Path.Combine(dataRoot,phase+"-result.txt");Directory.CreateDirectory(dataRoot);
         try {
+            if(phase=="launchpad"){File.WriteAllText(result,await VerifyLaunchpad());return;}
             if(phase.StartsWith("essay")){File.WriteAllText(result,await VerifyEssay(phase));return;}
             if(phase.StartsWith("flags")){File.WriteAllText(result,await VerifyFlags(phase));return;}
             if(phase=="word-symbols"){File.WriteAllText(result,await VerifyWordSymbols());return;}
@@ -46,7 +47,7 @@ public partial class MainView {
                 preferences.Theme="light";ApplyTheme();Navigate("home");await Capture("qd-home-light");
                 if(Application.Current.ApplicationLifetime is IClassicDesktopStyleApplicationLifetime wideHost){wideHost.MainWindow.MinWidth=320;wideHost.MainWindow.Width=1280;wideHost.MainWindow.Height=860;await Task.Delay(150);await Capture("qd-home-desktop-light");}
                 Check(navButtons["home"].Classes.Contains("selected"),"Home destination indicator missing");
-                var primary=Find(page,"＋ Nhập file đề");
+                var primary=Find(page,"Thử 2 câu mẫu");
                 var foreground=Controls<TextBlock>(primary).First().Foreground as Avalonia.Media.ISolidColorBrush;
                 Check(foreground?.Color==Avalonia.Media.Color.Parse("#FFFFFF"),"Filled button text has insufficient contrast");
                 if(Application.Current.ApplicationLifetime is IClassicDesktopStyleApplicationLifetime host) {

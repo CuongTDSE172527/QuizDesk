@@ -46,6 +46,7 @@ public partial class MainView {
             activeAttemptId=state.Id;exam=state.Exam;index=state.Index;practice=state.Practice;startedAt=state.StartedAt;deadline=state.Deadline.LocalDateTime;
             examMinutes=state.Minutes;answers.Clear();foreach(var pair in state.Answers)answers[pair.Key]=pair.Value;
             flaggedQuestions.Clear();if(!practice)flaggedQuestions.UnionWith(state.Flagged??new());
+            currentPage="setup";SetDestination("setup");
             active=true;navigation.IsEnabled=false;CreateQuestionView();ShowQuestion();
             if(!practice){timer.Start();Tick();}Notify(active?"Đã khôi phục bài đang làm.":"Bài đã hết giờ khi app ở nền; kết quả đã được nộp.");
         }finally{restoring=false;}
