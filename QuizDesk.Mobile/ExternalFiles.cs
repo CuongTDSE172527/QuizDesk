@@ -22,7 +22,7 @@ public partial class MainView {
     async Task ReviewIncomingFiles() {
         if(reviewingIncoming){incomingAgain=true;return;}if(Host==null)return;
         if(MobilePlatform.IncomingError is string error){MobilePlatform.IncomingError=null;Notify(error,true);}
-        if(active||studying||busy||currentDialog!=null){if(Inbox.List().Count>0)Notify("Đã nhận file .quiz. File được giữ chờ; bạn có thể tiếp tục bài đang làm.");return;}
+        if(active||studying||smartSession!=null||busy||currentDialog!=null){if(Inbox.List().Count>0)Notify("Đã nhận file .quiz. File được giữ chờ; bạn có thể tiếp tục bài đang làm.");return;}
         reviewingIncoming=true;
         try {
             foreach(var item in Inbox.List().Where(i=>!deferredIncoming.Contains(i.Id))) {
@@ -30,7 +30,7 @@ public partial class MainView {
                 try{var parsed=await Task.Run(()=>{var list=Importers.Load(Inbox.ContentPath(item),out var config);Importers.Validate(list);return (list,config);});incoming=parsed.list;importedSetup=parsed.config;}
                 catch(Exception ex){Inbox.Remove(item);Notify("Không mở được “"+item.Name+"”: "+ex.Message,true);continue;}
                 // The file may have arrived while an exam/dialog was starting.
-                if(active||studying||busy||currentDialog!=null)break;
+                if(active||studying||smartSession!=null||busy||currentDialog!=null)break;
                 bool duplicate=library.List(out _).Any(b=>b.SourceName==item.Name);
                 var dialog=Dialog("Nhận bộ đề");bool later=false;
                 dialog.Content=new ScrollViewer {Name="IncomingPreviewScroll",HorizontalScrollBarVisibility=ScrollBarVisibility.Disabled,Content=Stack(Text("Nhận bộ đề",24),Text(Path.GetFileNameWithoutExtension(item.Name),21),

@@ -11,6 +11,7 @@ partial class Tests {
         var json=new JsonSerializerOptions {IncludeFields=true};
         var oracle=JsonSerializer.Deserialize<WorkspaceBank>(JsonSerializer.Serialize(source,json),json);
         var saved=store.Create(source);oracle.LibraryBankId=saved.Id;
+        for (int i=0;i<oracle.Bank.Count;i++) oracle.Bank[i].StudyId=saved.Content.Bank[i].StudyId;
         Check(JsonSerializer.Serialize(saved.Content,json)==JsonSerializer.Serialize(oracle,json),"Direct snapshot matches the previous independent JSON roundtrip for every model field");
         first.Options["A"]="Changed";first.ImportWarnings.Add("Later");first.Media[0].Data[0]^=0xFF;source.Setup.Included.Clear();source.Bank.Clear();
         Check(saved.Content.Bank.Count==2&&saved.Content.Setup.Included.SetEquals(new[]{1,2}),"Question list and selection are isolated from the source");

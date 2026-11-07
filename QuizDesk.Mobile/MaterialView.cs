@@ -14,6 +14,7 @@ public partial class MainView {
             "home"=>"M3 10 L12 3 L21 10 M5 9 V21 H10 V14 H14 V21 H19 V9",
             "bank"=>"M3 4 H9 Q12 4 12 7 Q12 4 15 4 H21 V20 H15 Q12 20 12 22 Q12 20 9 20 H3 Z M12 7 V22",
             "setup"=>"M8 4 H5 V22 H19 V4 H16 M8 2 H16 V6 H8 Z M8 11 H16 M8 15 H16 M8 19 H13",
+            "statistics"=>"M4 20 H20 M6 16 V12 M12 16 V8 M18 16 V4",
             "history"=>"M3 11 A9 9 0 1 1 5 18 M3 4 V11 H10 M12 7 V12 L16 14",
             "preferences"=>"M4 6 H20 M4 12 H20 M4 18 H20 M8 3 V9 M16 9 V15 M10 15 V21",
             "help"=>"M12 22 A10 10 0 1 0 12 2 A10 10 0 1 0 12 22 M9 8 C9 4 17 5 15 10 L12 13 V15 M12 18 V19",

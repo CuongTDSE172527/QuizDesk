@@ -31,13 +31,14 @@ public partial class MainView {
         catch(Exception ex){Notify("Bộ đề đã lưu trong thư viện; chưa ghi được trạng thái đang mở: "+ex.Message,true);}
     }
     public void PersistSession(){FlushGlassSettings();PersistBank();if(active)Checkpoint();if(studying)SaveStudy();}
-    public void ResumeSession(){UpdateHeaderDateTime();if(active&&!practice)Tick();IncomingChanged();}
+    public void ResumeSession(){UpdateHeaderDateTime();if(active&&!practice){examTimingAt=System.Diagnostics.Stopwatch.GetTimestamp();Tick();}IncomingChanged();}
     void BeginCheckpoint() {
         try{workspace.Begin(new ActiveMobileExam {LibraryBankId=examBankId,Id=activeAttemptId,Title=examTitle,StartedAt=startedAt,Deadline=new DateTimeOffset(deadline),Practice=practice,Minutes=examMinutes,Exam=exam,Flagged=new(flaggedQuestions)});}
         catch(Exception ex) when(ex is IOException||ex is UnauthorizedAccessException){Notify("Chưa lưu được bài đang làm: "+ex.Message,true);}
     }
     void Checkpoint() {
-        try{workspace.Checkpoint(activeAttemptId,index,answers,flaggedQuestions);}catch(Exception ex) when(ex is IOException||ex is UnauthorizedAccessException){Notify("Chưa lưu được lựa chọn: "+ex.Message,true);}
+        AccumulateExamTime();
+        try{workspace.Checkpoint(activeAttemptId,index,answers,flaggedQuestions,examSeconds);}catch(Exception ex) when(ex is IOException||ex is UnauthorizedAccessException){Notify("Chưa lưu được lựa chọn: "+ex.Message,true);}
     }
     void RestoreExam(ActiveMobileExam state) {
         restoring=true;
@@ -45,6 +46,8 @@ public partial class MainView {
             examBankId=state.LibraryBankId;examTitle=state.Title;
             activeAttemptId=state.Id;exam=state.Exam;index=state.Index;practice=state.Practice;startedAt=state.StartedAt;deadline=state.Deadline.LocalDateTime;
             examMinutes=state.Minutes;answers.Clear();foreach(var pair in state.Answers)answers[pair.Key]=pair.Value;
+            examSeconds.Clear();foreach(var pair in state.Seconds)examSeconds[pair.Key]=pair.Value;
+            examTimingAt=System.Diagnostics.Stopwatch.GetTimestamp();
             flaggedQuestions.Clear();if(!practice)flaggedQuestions.UnionWith(state.Flagged??new());
             currentPage="setup";SetDestination("setup");
             active=true;navigation.IsEnabled=false;CreateQuestionView();ShowQuestion();
@@ -54,6 +57,7 @@ public partial class MainView {
     async void HandleBack(object sender,RoutedEventArgs args) {
         if(busy){args.Handled=true;return;}
         if(currentDialog!=null){args.Handled=true;currentDialog.Close(false);return;}
+        if(smartSession!=null){args.Handled=true;ExitSmartReview();return;}
         if(studying){args.Handled=true;ExitStudy();return;}
         if(active&&practice){args.Handled=true;ExitPractice();return;}
         if(active){args.Handled=true;if(await Ask("Nộp bài trước khi rời màn hình?","Bài đang làm được lưu trên thiết bị. Bạn có thể hủy để tiếp tục làm bài.","Nộp bài"))Finish();return;}

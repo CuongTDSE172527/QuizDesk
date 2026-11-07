@@ -61,6 +61,7 @@ public partial class MainView : UserControl {
     IStorageProvider Storage=>Host?.StorageProvider??throw new InvalidOperationException("Chưa sẵn sàng chọn file.");
     public MainView(string folder=null) {
         dataRoot=folder??MobilePlatform.DataDirectory??Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),"QuizDesk");
+        reviewStore = new ReviewStore(Path.Combine(dataRoot, "Reviews"));
         studyStore=new FlashcardStore(Path.Combine(dataRoot,"Study"));restoredStudy=studyStore.Load(out string studyWarning);
         AddHandler(KeyDownEvent,LibrarySelectKey,Avalonia.Interactivity.RoutingStrategies.Tunnel);
         AddHandler(KeyDownEvent,StudyKey,Avalonia.Interactivity.RoutingStrategies.Tunnel);
@@ -89,8 +90,8 @@ public partial class MainView : UserControl {
         shell.Children.Add(headerSurface);
         var container=contentContainer=new Grid {RowDefinitions=new RowDefinitions("Auto,*")};notice.Child=noticeText;container.Children.Add(notice);
         pageScroll=new ScrollViewer {Content=page,HorizontalScrollBarVisibility=ScrollBarVisibility.Disabled};Grid.SetRow(pageScroll,1);container.Children.Add(pageScroll);Grid.SetRow(container,1);shell.Children.Add(container);
-        var bottom=navigationGrid=new Grid {ColumnDefinitions=new ColumnDefinitions("*,*,*,*"),ColumnSpacing=0};
-        var navs=new[]{("home","Trang chủ"),("bank","Bộ đề"),("setup","Học & thi"),("history","Lịch sử")};
+        var bottom=navigationGrid=new Grid {ColumnDefinitions=new ColumnDefinitions("*,*,*,*,*"),ColumnSpacing=0};
+        var navs=new[]{("home","Trang chủ"),("bank","Bộ đề"),("setup","Học & thi"),("history","Lịch sử"),("statistics","Thống kê")};
         for(int i=0;i<navs.Length;i++){var (key,label)=navs[i];var button=NavButton(key,label);Grid.SetColumn(button,i);bottom.Children.Add(button);}
         Tone(navigation,Panel.BackgroundProperty,"Container");navigation.Children.Add(bottom);Grid.SetRow(navigation,2);navigation.Margin=default;shell.Children.Add(navigation);
         outer.Children.Add(glassBackdrop);outer.Children.Add(shell);outer.Children.Add(modal);Content=outer;TopLevel.SetAutoSafeAreaPadding(this,true);
@@ -126,13 +127,14 @@ public partial class MainView : UserControl {
     void Heading(string eyebrow,string heading,string description) {var caption=Text(eyebrow,12);caption.Classes.Add("primary");caption.FontWeight=FontWeight.SemiBold;page.Children.Add(new StackPanel {Spacing=8,Children={caption,new TextBlock {Text=heading,FontSize=28,FontWeight=FontWeight.SemiBold,TextWrapping=TextWrapping.Wrap,LineHeight=36},Supporting(description)}});}
     void Notify(string message,bool error=false) {noticeText.Text=message;Tone(notice,Border.BackgroundProperty,error?"ErrorContainer":"SecondaryContainer");Tone(noticeText,TextBlock.ForegroundProperty,error?"OnErrorContainer":"OnSecondaryContainer");notice.IsVisible=true;}
     void Navigate(string key) {
+        if (smartSession != null) return;
         if(studying){Notify("Nhấn Lưu & thoát để rời flashcards. Tiến độ học được giữ lại.");return;}
         if(active){Notify(practice?"Nhấn Thoát ôn tập để chuyển sang trang khác.":"Hãy nộp bài trước khi chuyển sang trang khác.");return;}
         if(key!="bank"){selectingBanks=false;selectedBanks.Clear();}
         if(key!="bank"||currentPage!="bank")expandedBankId=null;
         currentPage=key;page.Children.Clear();preferencesStatus=null;
         SetDestination(key);
-        switch(key){case "bank":Bank();break;case "setup":ExamSettings();break;case "history":HistoryPage();break;case "help":Help();break;case "preferences":PreferencesPage();break;default:Home();break;}
+        switch(key){case "bank":Bank();break;case "setup":ExamSettings();break;case "history":HistoryPage();break;case "statistics":StatisticsPage();break;case "help":Help();break;case "preferences":PreferencesPage();break;default:Home();break;}
         pageScroll.Offset=default;Animate(page);
     }
     async Task<bool> Ask(string heading,string message,string yes="Đồng ý") {
@@ -264,6 +266,7 @@ public partial class MainView : UserControl {
         if(await dialog.ShowDialog<bool>(this))RefreshEditedQuestion(original,edited,viewport);
     }
     void CommitQuestion(Question original,Question result) {
+        result.StudyId = original?.StudyId ?? Guid.NewGuid();
         Importers.Validate(bank.Where(q=>!ReferenceEquals(q,original)).Append(result).ToList());if(bank.Any(q=>q.Number==result.Number&&!ReferenceEquals(q,original)))throw new InvalidOperationException("Số câu bị trùng.");
         if(original==null){bank.Add(result);setup.Included.Add(result.Number);}else{int at=bank.IndexOf(original);if(at<0)throw new InvalidOperationException("Câu hỏi không còn trong bộ đề.");bank[at]=result;}dirty=true;PersistBank();
     }
@@ -315,7 +318,7 @@ public partial class MainView : UserControl {
         try{exam=QuizSetup.Build(bank,setup,isPractice,new Random());}catch(Exception ex){Notify(ex.Message,true);return;}
         currentPage="setup";SetDestination("setup");
         examTitle=title;examMinutes=setup.Minutes;examBankId=currentBankId;
-        flaggedQuestions.Clear();answers.Clear();index=0;practice=isPractice;active=true;activeAttemptId=Guid.NewGuid();deadline=DateTime.Now.AddMinutes(setup.Minutes);notice.IsVisible=false;navigation.IsEnabled=false;
+        flaggedQuestions.Clear();answers.Clear();examSeconds.Clear();examTimingAt=System.Diagnostics.Stopwatch.GetTimestamp();index=0;practice=isPractice;active=true;activeAttemptId=Guid.NewGuid();deadline=DateTime.Now.AddMinutes(setup.Minutes);notice.IsVisible=false;navigation.IsEnabled=false;
         startedAt=DateTimeOffset.Now;attemptWatch.Restart();BeginCheckpoint();
         clock.Text=TimeSpan.FromMinutes(setup.Minutes).ToString(@"hh\:mm\:ss");CreateQuestionView();ShowQuestion();if(!practice)timer.Start();pageScroll.Offset=default;Animate(page);
     }
@@ -339,9 +342,9 @@ public partial class MainView : UserControl {
         CreateFlagControls();
         CreateJumpNavigator();
     }
-    void MoveToQuestion(int target){if(!active||target<0||target>=exam.Count)return;if(index==target){UpdateJumpState();return;}index=target;ShowQuestion();Checkpoint();Animate(questionText,110);}
-    void ChooseAnswer(string key){if(!active)return;bool changed=(!practice||!answers.ContainsKey(index))&&exam[index].Options.ContainsKey(key)&&answers.GetValueOrDefault(index)!=key;if(changed)answers[index]=key;UpdateAnswerState();if(changed){Checkpoint();Animate(answerMarkers[key],90,true);}}
-    void ShowQuestion(){var q=exam[index];questionHeading.Text=$"Câu {index+1} / {exam.Count}";questionText.Text=q.Text;questionMedia.Set(q.Media.Where(m=>m.Target=="question"));foreach(var pair in answerButtons){bool exists=!q.IsEssay&&q.Options.ContainsKey(pair.Key);string value=q.Options.GetValueOrDefault(pair.Key);pair.Value.IsVisible=exists;if(exists)answerLabels[pair.Key].Text=pair.Key+".  "+value;choiceMedia[pair.Key].Set(q.Media.Where(m=>m.Target==pair.Key));}ShowEssayInput(q);previousQuestion.IsEnabled=index>0;nextQuestion.IsEnabled=index<exam.Count-1;UpdateAnswerState();}
+    void MoveToQuestion(int target){if(!active||target<0||target>=exam.Count)return;if(index==target){UpdateJumpState();return;}AccumulateExamTime();index=target;ShowQuestion();Checkpoint();Animate(questionText,110);}
+    void ChooseAnswer(string key){if(!active)return;bool changed=(!practice||!answers.ContainsKey(index))&&exam[index].Options.ContainsKey(key)&&answers.GetValueOrDefault(index)!=key;if(changed)answers[index]=key;UpdateAnswerState();if(changed){Checkpoint();if(practice && exam[index].Answer!="")RecordPracticeRecall(key==exam[index].Answer);Animate(answerMarkers[key],90,true);}}
+    void ShowQuestion(){questionShownAt=System.Diagnostics.Stopwatch.GetTimestamp();var q=exam[index];questionHeading.Text=$"Câu {index+1} / {exam.Count}";questionText.Text=q.Text;questionMedia.Set(q.Media.Where(m=>m.Target=="question"));foreach(var pair in answerButtons){bool exists=!q.IsEssay&&q.Options.ContainsKey(pair.Key);string value=q.Options.GetValueOrDefault(pair.Key);pair.Value.IsVisible=exists;if(exists)answerLabels[pair.Key].Text=pair.Key+".  "+value;choiceMedia[pair.Key].Set(q.Media.Where(m=>m.Target==pair.Key));}ShowEssayInput(q);previousQuestion.IsEnabled=index>0;nextQuestion.IsEnabled=index<exam.Count-1;UpdateAnswerState();}
     void UpdateAnswerState() {
         var q=exam[index];answers.TryGetValue(index,out string picked);questionSummary.Text=$"Đã trả lời {answers.Count} câu · Câu gốc {q.Number}";questionProgress.Value=answers.Count;
         if(q.IsEssay){UpdateEssayFeedback(q);UpdateJumpState();return;}
@@ -361,9 +364,12 @@ public partial class MainView : UserControl {
     }
     void Tick(){if(!active)return;var left=deadline-DateTime.Now;clock.Text=left.TotalSeconds>0?left.ToString(@"hh\:mm\:ss"):"00:00:00";if(left.TotalSeconds<=0)Finish(true);}
     void Finish(bool timedOut=false) {
-        if(!active)return;if(practice){ExitPractice();return;}active=false;timer.Stop();currentDialog?.Close(false);navigation.IsEnabled=true;page.Children.Clear();
+        if(!active)return;if(practice){ExitPractice();return;}AccumulateExamTime();active=false;timer.Stop();currentDialog?.Close(false);navigation.IsEnabled=true;page.Children.Clear();
         attemptWatch.Stop();ExamAttempt completed=null;
-        if(!practice){completed=ExamAttempt.Capture(examTitle,startedAt,timedOut?new DateTimeOffset(deadline):DateTimeOffset.Now,TimeSpan.FromSeconds(Math.Clamp((DateTimeOffset.Now-startedAt).TotalSeconds,0,examMinutes*60)),examMinutes,timedOut,exam,answers);completed.Id=activeAttemptId;unsavedAttempts.Add(completed);TrySaveAttempts();}else{workspace.Complete(activeAttemptId);}
+        if(!practice){completed=ExamAttempt.Capture(examTitle,startedAt,timedOut?new DateTimeOffset(deadline):DateTimeOffset.Now,TimeSpan.FromSeconds(Math.Clamp((DateTimeOffset.Now-startedAt).TotalSeconds,0,examMinutes*60)),examMinutes,timedOut,exam,answers);completed.Id=activeAttemptId;completed.LibraryBankId=examBankId;
+            foreach(var timing in examSeconds)completed.Questions[timing.Key].Seconds=timing.Value;
+            foreach(int flagged in flaggedQuestions)if(flagged>=0&&flagged<completed.Questions.Count)completed.Questions[flagged].Flagged=true;
+            unsavedAttempts.Add(completed);TrySaveAttempts();}else{workspace.Complete(activeAttemptId);}
         int graded=exam.Count(q=>!q.IsEssay&&q.Answer!=""),correct=Enumerable.Range(0,exam.Count).Count(i=>!exam[i].IsEssay&&exam[i].Answer!=""&&answers.TryGetValue(i,out string a)&&a==exam[i].Answer);
         Heading("Hoàn thành","Bạn đã hoàn thành bài làm",graded==0?"Bài chưa có câu đủ đáp án để tính điểm.":$"Đúng {correct} / {graded} câu được tính điểm");
         page.Children.Add(Card(Stack(Text(graded==0?"—":(10.0*correct/graded).ToString("0.##")+" / 10",42),Text($"Không tính điểm: {exam.Count(q=>q.IsEssay||q.Answer=="")} câu. Tự luận được xem lại và tự chấm trong Lịch sử. Điểm tự động chỉ dành cho trắc nghiệm."))));

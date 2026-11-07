@@ -3,6 +3,7 @@ using System.Text.Json;
 namespace QuizDesk;
 
 public sealed class Flashcard {
+    public Guid StudyId {get;set;}
     public int Number {get;set;}
     public string Front {get;set;}="";
     public string Back {get;set;}="";
@@ -32,7 +33,7 @@ public sealed class FlashcardSession {
     public static FlashcardSession Create(string title,Guid? bankId,IEnumerable<Question> bank,QuizSetup setup,Random random=null) {
         var selected=bank.Where(q=>setup.Included.Contains(q.Number)).ToList();
         var cards=selected.Where(q=>QuestionReview.ScoringAnswer(q)!=""&&q.Options.ContainsKey(q.Answer))
-            .Select(q=>new Flashcard {Number=q.Number,Front=q.Text,Back=q.Answer+". "+q.Options[q.Answer],Note=q.Note,Choices=string.Join("\n",q.Options.Select(o=>o.Key+". "+o.Value)),OriginalAnswer=q.OriginalAnswer,Source=q.AnswerSource,Answer=q.Answer,Media=q.Media.Select(m=>m.Clone()).ToList()}).ToList();
+            .Select(q=>new Flashcard {StudyId=q.StudyId,Number=q.Number,Front=q.Text,Back=q.Answer+". "+q.Options[q.Answer],Note=q.Note,Choices=string.Join("\n",q.Options.Select(o=>o.Key+". "+o.Value)),OriginalAnswer=q.OriginalAnswer,Source=q.AnswerSource,Answer=q.Answer,Media=q.Media.Select(m=>m.Clone()).ToList()}).ToList();
         if(cards.Count==0)throw new InvalidOperationException("Chưa có câu đã chọn nào có đáp án xác nhận để tạo flashcards. Mở Bộ đề → Sửa để bổ sung.");
         var state=new FlashcardSession {Title=title,BankId=bankId,Cards=cards,Excluded=selected.Count-cards.Count,Order=Enumerable.Range(0,cards.Count).ToList()};
         if(setup.ShuffleQuestions){random??=new Random();random.Shuffle(System.Runtime.InteropServices.CollectionsMarshal.AsSpan(state.Order));}

@@ -16,7 +16,7 @@ public sealed class BankActivity {
 public sealed class LibraryBank {
     public DateTimeOffset? DeletedAt {get;set;}
     public int DeletedQuestionCount {get;set;}
-    public int Version {get;set;}=1;
+    public int Version {get;set;}=2;
     public Guid Id {get;set;}
     public DateTimeOffset CreatedAt {get;set;}
     public DateTimeOffset? ImportedAt {get;set;}
@@ -35,6 +35,7 @@ public sealed class MobileBankLibrary {
     static readonly JsonSerializerOptions Json=new() {IncludeFields=true};
     static readonly Guid LegacyId=new("9ba50c90-cf67-49d2-988b-a4b761af1aba");
     readonly string folder;
+    readonly object migrationGate = new();
     sealed record SummaryCacheEntry(long Length,DateTime Written,DateTime Created,LibraryBankSummary Summary);
     readonly System.Collections.Concurrent.ConcurrentDictionary<Guid,SummaryCacheEntry> summaries=new();
     public MobileBankLibrary(string folder)=>this.folder=Path.GetFullPath(folder);
@@ -49,7 +50,7 @@ public sealed class MobileBankLibrary {
             Included=bank.Setup.Included==null?null:new(bank.Setup.Included)
         },
         Bank=bank.Bank?.Select(q=>q==null?null:new Question {
-            IsEssay=q.IsEssay,Number=q.Number,Text=q.Text,Note=q.Note,Answer=q.Answer,
+            StudyId=q.StudyId,IsEssay=q.IsEssay,Number=q.Number,Text=q.Text,Note=q.Note,Answer=q.Answer,
             OriginalAnswer=q.OriginalAnswer,AnswerSource=q.AnswerSource,NeedsReview=q.NeedsReview,
             Options=q.Options==null?null:new(q.Options,StringComparer.Ordinal),
             ImportWarnings=q.ImportWarnings==null?null:new(q.ImportWarnings),
@@ -71,9 +72,32 @@ public sealed class MobileBankLibrary {
         finally{if(File.Exists(temp))File.Delete(temp);}
     }
     public LibraryBank Load(Guid id) {
-        using var stream=InputSafety.OpenFile(FileName(id),128L*1024*1024);var bank=JsonSerializer.Deserialize<LibraryBank>(stream,Json);
-        if(bank==null||bank.Id!=id||bank.Version!=1||bank.CreatedAt==default||bank.UpdatedAt==default||bank.Activities==null||bank.Activities.Any(a=>a==null||a.Changes==null||a.At==default))throw new InvalidDataException("Không đọc được bộ đề trong thư viện.");
-        Validate(bank.Content);bank.Content.LibraryBankId=id;return bank;
+        lock (migrationGate) return LoadAndMigrate(id);
+    }
+    LibraryBank LoadAndMigrate(Guid id) {
+        string path = FileName(id);
+        LibraryBank bank;
+        using (var stream = InputSafety.OpenFile(path, 128L * 1024 * 1024))
+            bank = JsonSerializer.Deserialize<LibraryBank>(stream, Json);
+        if(bank==null||bank.Id!=id||bank.Version is not (1 or 2)||bank.CreatedAt==default||bank.UpdatedAt==default||bank.Activities==null||bank.Activities.Any(a=>a==null||a.Changes==null||a.At==default))throw new InvalidDataException("Không đọc được bộ đề trong thư viện.");
+        Validate(bank.Content);
+        bank.Content.LibraryBankId = id;
+        if (bank.Version == 1) {
+            DataMigration.BackupV1(path);
+            AssignStudyIds(bank.Content.Bank);
+            bank.Version = 2;
+            Write(bank);
+        }
+        return bank;
+    }
+    static void AssignStudyIds(IEnumerable<Question> questions) {
+        var seen = new HashSet<Guid>();
+        foreach (var question in questions) {
+            if (question.StudyId == Guid.Empty || !seen.Add(question.StudyId)) {
+                question.StudyId = Guid.NewGuid();
+                seen.Add(question.StudyId);
+            }
+        }
     }
     public List<LibraryBankSummary> List(out string warning,bool includeDeleted=false) {
         warning="";var items=new List<LibraryBankSummary>();if(!Directory.Exists(folder)){summaries.Clear();return items;}
@@ -158,7 +182,9 @@ public sealed class MobileBankLibrary {
         return Create(content,imported?"Nhập nhiều file":"",imported,Guid.NewGuid(),false,activity);
     }
     LibraryBank Create(WorkspaceBank content,string sourceName,bool imported,Guid id,bool migrated,BankActivity extraActivity=null) {
-        var snapshot=Clone(content);Validate(snapshot);snapshot.LibraryBankId=id;var now=DateTimeOffset.UtcNow;
+        var snapshot=Clone(content);Validate(snapshot);snapshot.LibraryBankId=id;
+        foreach (var question in snapshot.Bank) question.StudyId = Guid.NewGuid();
+        var now=DateTimeOffset.UtcNow;
         var bank=new LibraryBank {Id=id,Content=snapshot,CreatedAt=now,UpdatedAt=now,ImportedAt=imported?now:null,SourceName=Path.GetFileName(sourceName??"")};
         bank.Activities.Add(new() {At=now,Kind=migrated?"migrated":imported?"imported":"created",Description=migrated?"Chuyển bản nháp từ phiên bản cũ. Không có dữ liệu về thời điểm nhập ban đầu.":imported?$"Nhập file “{bank.SourceName}” · {snapshot.Bank.Count} câu hỏi.":"Tạo bộ đề mới."});
         if(extraActivity!=null){extraActivity.At=now;bank.Activities.Add(extraActivity);}
@@ -170,7 +196,11 @@ public sealed class MobileBankLibrary {
     }
     public LibraryBank Save(Guid id,WorkspaceBank content) {
         var snapshot=Clone(content);Validate(snapshot);snapshot.LibraryBankId=id;
-        var bank=Load(id);if(bank.DeletedAt.HasValue)throw new InvalidOperationException("Bộ đề đã bị xóa. Không thể tự lưu lại nội dung cũ.");var changes=Diff(bank.Content,snapshot);
+        var bank=Load(id);if(bank.DeletedAt.HasValue)throw new InvalidOperationException("Bộ đề đã bị xóa. Không thể tự lưu lại nội dung cũ.");var oldIds = bank.Content.Bank.ToDictionary(question => question.Number, question => question.StudyId);
+        foreach (var question in snapshot.Bank)
+            if (question.StudyId == Guid.Empty) question.StudyId = oldIds.GetValueOrDefault(question.Number);
+        AssignStudyIds(snapshot.Bank);
+        var changes=Diff(bank.Content,snapshot);
         if(changes.Count==0&&bank.Content.HasUnexportedChanges==snapshot.HasUnexportedChanges)return bank;
         if(changes.Count>0) {
             var now=DateTimeOffset.UtcNow;bank.UpdatedAt=now;

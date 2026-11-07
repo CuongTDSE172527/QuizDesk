@@ -40,7 +40,7 @@ public partial class MainView {
     void ExitStudy(){SaveStudy();studying=false;page.Spacing=20;if(study!=null){study.InProgress=false;SaveStudy();}navigation.IsEnabled=true;Navigate("setup");IncomingChanged();}
     void FlipStudy(){if(study==null||study.Summary)return;study.Flip();UpdateStudy();SaveStudy();Animate(flashCard,120,true);}
     void MoveStudy(int delta){if(study==null)return;study.Move(study.Position+delta);UpdateStudy();SaveStudy();Animate(flashCard,110);}
-    void RateStudy(bool known){if(study==null||!study.Revealed)return;study.Rate(known);if(study.Summary)RenderStudy();else UpdateStudy();SaveStudy();}
+    void RateStudy(bool known){if(study==null||!study.Revealed)return;RecordRecall(study.Id, study.BankId, study.Current.StudyId, known, "flashcards");study.Rate(known);if(study.Summary)RenderStudy();else UpdateStudy();SaveStudy();}
     void StudyKey(object sender,KeyEventArgs args){
         if(!studying||study==null||study.Summary||currentDialog!=null||args.KeyModifiers!=KeyModifiers.None)return;
         if(args.Key==Key.Space){FlipStudy();args.Handled=true;}

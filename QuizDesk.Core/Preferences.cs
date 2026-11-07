@@ -18,7 +18,9 @@ public class AppPreferences {
     public bool AeroGlass {get;set;}=true;
     public int GlassBrightness {get;set;}=0;
     public int GlassTransparency {get;set;}=50;
+    public int SmartReviewLimit { get; set; } = 20;
     public void Normalize() {
+        SmartReviewLimit = Math.Clamp(SmartReviewLimit, 1, 100);
         if(Version!=1)throw new InvalidDataException("Phiên bản file cài đặt chưa được hỗ trợ.");
         if(Theme!="light"&&Theme!="dark"&&Theme!="system")Theme="light";
         GlassBrightness=Math.Clamp(GlassBrightness,-50,50);GlassTransparency=Math.Clamp(GlassTransparency,0,100);
