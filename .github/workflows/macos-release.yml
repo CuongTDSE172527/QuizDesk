@@ -4,6 +4,8 @@ on:
   push:
     branches: [main]
     tags: ['v*']
+  pull_request:
+    branches: [main]
   workflow_dispatch:
     inputs:
       tag:
@@ -97,6 +99,7 @@ jobs:
           overwrite: true
 
   publish:
+    if: github.event_name != 'pull_request'
     name: Publish macOS ${{ matrix.architecture }} to Releases
     needs: build
     runs-on: windows-2025

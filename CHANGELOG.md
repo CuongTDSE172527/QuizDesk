@@ -1,3 +1,9 @@
+# QuizDesk 5.17.6 — 07/11/2026
+
+- Tìm bộ đề theo tên hoặc file nguồn, hỗ trợ gõ tiếng Việt không dấu.
+- Ôn hoặc mở thiết lập thi trực tiếp từ thẻ bộ đề. Ôn tập tiếp tục đúng lượt đã lưu.
+- Actions Windows/macOS build trên pull request và lưu Artifacts để kiểm tra trước khi gộp.
+
 # QuizDesk 5.17.5 — 31/10/2026
 
 - Biên soạn câu tự luận với đáp án mẫu; hỗ trợ bộ đề tự luận hoặc trộn với trắc nghiệm.
