@@ -5,6 +5,7 @@ namespace QuizDesk.Mobile;
 public partial class MainView {
     TextBox essayInput;
     Button essayReveal;
+    WrapPanel essayRatings;
     bool showingEssay,essayRevealed;
     readonly DispatcherTimer essaySaveTimer=new(){Interval=TimeSpan.FromMilliseconds(400)};
     bool essayTimerReady;
@@ -12,7 +13,8 @@ public partial class MainView {
         if(!essayTimerReady){essaySaveTimer.Tick+=(_,_)=>{essaySaveTimer.Stop();if(active)Checkpoint();};essayTimerReady=true;}
         essayInput=new TextBox {Name="EssayResponse",AcceptsReturn=true,TextWrapping=TextWrapping.Wrap,MinHeight=180,MaxLength=32768,PlaceholderText="Nhập câu trả lời tự luận…"};
         essayReveal=Btn("Xem đáp án mẫu",()=>{essayRevealed=!essayRevealed;UpdateEssayFeedback(exam[index]);});
-        choices.Children.Add(essayInput);choices.Children.Add(essayReveal);
+        essayRatings = Row(Btn("Đã nhớ", () => RatePracticeEssay(true)), Btn("Cần ôn lại", () => RatePracticeEssay(false)));
+        choices.Children.Add(essayInput);choices.Children.Add(essayReveal);choices.Children.Add(essayRatings);
         essayInput.PropertyChanged+=(_,change)=>{
             if(change.Property!=TextBox.TextProperty)return;
             if(showingEssay||!active||!exam[index].IsEssay)return;
@@ -21,11 +23,16 @@ public partial class MainView {
         };
     }
     void ShowEssayInput(Question q) {
-        showingEssay=true;try{essayInput.IsVisible=q.IsEssay;essayInput.Text=q.IsEssay?answers.GetValueOrDefault(index,""):"";essayReveal.IsVisible=q.IsEssay&&practice;essayRevealed=false;}finally{showingEssay=false;}
+        showingEssay=true;try{essayInput.IsVisible=q.IsEssay;essayInput.Text=q.IsEssay?answers.GetValueOrDefault(index,""):"";essayReveal.IsVisible=q.IsEssay&&practice;essayRevealed=false;essayRatings.IsVisible=false;essayRatings.IsEnabled=true;}finally{showingEssay=false;}
+    }
+    void RatePracticeEssay(bool remembered) {
+        if (active && practice && essayRevealed && RecordPracticeRecall(remembered))
+            essayRatings.IsEnabled = false;
     }
     void UpdateEssayFeedback(Question q) {
         essayReveal.Content=essayRevealed?"Ẩn đáp án mẫu":"Xem đáp án mẫu";
         questionFeedback.IsVisible=practice&&essayRevealed;
+        essayRatings.IsVisible=practice&&essayRevealed&&q.Answer!="";
         feedbackText.Text="Đáp án mẫu / tiêu chí đối chiếu:\n"+(q.Answer==""?"Chưa bổ sung đáp án mẫu.":q.Answer)+"\n"+q.Note;
         Tone(questionFeedback,Border.BackgroundProperty,"ContainerLow");Tone(feedbackText,TextBlock.ForegroundProperty,"OnSurface");
         noteMedia.Set(practice&&essayRevealed?q.Media.Where(m=>m.Target=="note"):Array.Empty<QuestionMedia>());

@@ -61,6 +61,7 @@ public partial class MainView : UserControl {
     IStorageProvider Storage=>Host?.StorageProvider??throw new InvalidOperationException("Chưa sẵn sàng chọn file.");
     public MainView(string folder=null) {
         dataRoot=folder??MobilePlatform.DataDirectory??Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),"QuizDesk");
+        reviewStore = new ReviewStore(Path.Combine(dataRoot, "Reviews"));
         studyStore=new FlashcardStore(Path.Combine(dataRoot,"Study"));restoredStudy=studyStore.Load(out string studyWarning);
         AddHandler(KeyDownEvent,LibrarySelectKey,Avalonia.Interactivity.RoutingStrategies.Tunnel);
         AddHandler(KeyDownEvent,StudyKey,Avalonia.Interactivity.RoutingStrategies.Tunnel);
@@ -126,6 +127,7 @@ public partial class MainView : UserControl {
     void Heading(string eyebrow,string heading,string description) {var caption=Text(eyebrow,12);caption.Classes.Add("primary");caption.FontWeight=FontWeight.SemiBold;page.Children.Add(new StackPanel {Spacing=8,Children={caption,new TextBlock {Text=heading,FontSize=28,FontWeight=FontWeight.SemiBold,TextWrapping=TextWrapping.Wrap,LineHeight=36},Supporting(description)}});}
     void Notify(string message,bool error=false) {noticeText.Text=message;Tone(notice,Border.BackgroundProperty,error?"ErrorContainer":"SecondaryContainer");Tone(noticeText,TextBlock.ForegroundProperty,error?"OnErrorContainer":"OnSecondaryContainer");notice.IsVisible=true;}
     void Navigate(string key) {
+        if (smartSession != null) return;
         if(studying){Notify("Nhấn Lưu & thoát để rời flashcards. Tiến độ học được giữ lại.");return;}
         if(active){Notify(practice?"Nhấn Thoát ôn tập để chuyển sang trang khác.":"Hãy nộp bài trước khi chuyển sang trang khác.");return;}
         if(key!="bank"){selectingBanks=false;selectedBanks.Clear();}
@@ -341,8 +343,8 @@ public partial class MainView : UserControl {
         CreateJumpNavigator();
     }
     void MoveToQuestion(int target){if(!active||target<0||target>=exam.Count)return;if(index==target){UpdateJumpState();return;}index=target;ShowQuestion();Checkpoint();Animate(questionText,110);}
-    void ChooseAnswer(string key){if(!active)return;bool changed=(!practice||!answers.ContainsKey(index))&&exam[index].Options.ContainsKey(key)&&answers.GetValueOrDefault(index)!=key;if(changed)answers[index]=key;UpdateAnswerState();if(changed){Checkpoint();Animate(answerMarkers[key],90,true);}}
-    void ShowQuestion(){var q=exam[index];questionHeading.Text=$"Câu {index+1} / {exam.Count}";questionText.Text=q.Text;questionMedia.Set(q.Media.Where(m=>m.Target=="question"));foreach(var pair in answerButtons){bool exists=!q.IsEssay&&q.Options.ContainsKey(pair.Key);string value=q.Options.GetValueOrDefault(pair.Key);pair.Value.IsVisible=exists;if(exists)answerLabels[pair.Key].Text=pair.Key+".  "+value;choiceMedia[pair.Key].Set(q.Media.Where(m=>m.Target==pair.Key));}ShowEssayInput(q);previousQuestion.IsEnabled=index>0;nextQuestion.IsEnabled=index<exam.Count-1;UpdateAnswerState();}
+    void ChooseAnswer(string key){if(!active)return;bool changed=(!practice||!answers.ContainsKey(index))&&exam[index].Options.ContainsKey(key)&&answers.GetValueOrDefault(index)!=key;if(changed)answers[index]=key;UpdateAnswerState();if(changed){Checkpoint();if(practice && exam[index].Answer!="")RecordPracticeRecall(key==exam[index].Answer);Animate(answerMarkers[key],90,true);}}
+    void ShowQuestion(){questionShownAt=System.Diagnostics.Stopwatch.GetTimestamp();var q=exam[index];questionHeading.Text=$"Câu {index+1} / {exam.Count}";questionText.Text=q.Text;questionMedia.Set(q.Media.Where(m=>m.Target=="question"));foreach(var pair in answerButtons){bool exists=!q.IsEssay&&q.Options.ContainsKey(pair.Key);string value=q.Options.GetValueOrDefault(pair.Key);pair.Value.IsVisible=exists;if(exists)answerLabels[pair.Key].Text=pair.Key+".  "+value;choiceMedia[pair.Key].Set(q.Media.Where(m=>m.Target==pair.Key));}ShowEssayInput(q);previousQuestion.IsEnabled=index>0;nextQuestion.IsEnabled=index<exam.Count-1;UpdateAnswerState();}
     void UpdateAnswerState() {
         var q=exam[index];answers.TryGetValue(index,out string picked);questionSummary.Text=$"Đã trả lời {answers.Count} câu · Câu gốc {q.Number}";questionProgress.Value=answers.Count;
         if(q.IsEssay){UpdateEssayFeedback(q);UpdateJumpState();return;}

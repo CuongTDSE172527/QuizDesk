@@ -54,6 +54,7 @@ public partial class MainView {
     async void HandleBack(object sender,RoutedEventArgs args) {
         if(busy){args.Handled=true;return;}
         if(currentDialog!=null){args.Handled=true;currentDialog.Close(false);return;}
+        if(smartSession!=null){args.Handled=true;ExitSmartReview();return;}
         if(studying){args.Handled=true;ExitStudy();return;}
         if(active&&practice){args.Handled=true;ExitPractice();return;}
         if(active){args.Handled=true;if(await Ask("Nộp bài trước khi rời màn hình?","Bài đang làm được lưu trên thiết bị. Bạn có thể hủy để tiếp tục làm bài.","Nộp bài"))Finish();return;}

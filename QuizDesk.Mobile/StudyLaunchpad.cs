@@ -38,6 +38,7 @@ public partial class MainView {
         var hero = Card(content);
         Tone(hero, Border.BackgroundProperty, "PrimaryContainer");
         page.Children.Add(hero);
+        AddSmartReviewCard();
 
         var savedStudy = studyStore.Load(out _);
         if (bank.Count > 0 || savedStudy != null) {
