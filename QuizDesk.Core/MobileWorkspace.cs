@@ -25,6 +25,7 @@ public sealed class ActiveMobileExam {
     public HashSet<int> Flagged {get;set;}=new();
 }
 public sealed class MobileExamProgress {
+    public int Version {get;set;}=1;
     public Guid Id {get;set;}
     public int Index {get;set;}
     public Dictionary<int,string> Answers {get;set;}=new();
@@ -51,18 +52,23 @@ public sealed class MobileWorkspace {
             state.Setup.Count=Math.Clamp(state.Setup.Count,1,Math.Max(1,state.Bank.Count));state.Setup.Minutes=Math.Clamp(state.Setup.Minutes,1,300);return state;
         }catch(Exception ex) when(ex is IOException||ex is UnauthorizedAccessException||ex is JsonException||ex is InvalidDataException){warning="Không đọc được bản nháp. File được giữ nguyên: "+ex.Message;return null;}
     }
-    public void Begin(ActiveMobileExam exam){Write("active-exam.json",exam);Checkpoint(exam.Id,exam.Index,exam.Answers,exam.Flagged);}
-    public void Checkpoint(Guid id,int index,IReadOnlyDictionary<int,string> answers,IEnumerable<int> flagged=null)=>Write("exam-progress.json",new MobileExamProgress {Id=id,Index=index,Answers=new(answers),Flagged=new(flagged??Array.Empty<int>())});
+    public void Begin(ActiveMobileExam exam){exam.Version=2;Write("active-exam.json",exam);Checkpoint(exam.Id,exam.Index,exam.Answers,exam.Flagged);}
+    public void Checkpoint(Guid id,int index,IReadOnlyDictionary<int,string> answers,IEnumerable<int> flagged=null)=>Write("exam-progress.json",new MobileExamProgress {Version=2,Id=id,Index=index,Answers=new(answers),Flagged=new(flagged??Array.Empty<int>())});
     public ActiveMobileExam LoadActive(out string warning) {
         warning="";
         try {
             var state=Read<ActiveMobileExam>("active-exam.json");if(state==null)return null;
-            if(state.Version!=1||state.Id==Guid.Empty||state.Exam==null||state.Exam.Count==0||state.StartedAt==default||state.Deadline==default||state.Minutes<1||state.Minutes>300)throw new InvalidDataException();
+            if(state.Version is not (1 or 2)||state.Id==Guid.Empty||state.Exam==null||state.Exam.Count==0||state.StartedAt==default||state.Deadline==default||state.Minutes<1||state.Minutes>300)throw new InvalidDataException();
             Importers.Validate(state.Exam);
             var progress=Read<MobileExamProgress>("exam-progress.json");
-            if(progress?.Id==state.Id){state.Index=progress.Index;state.Answers=progress.Answers??new();state.Flagged=progress.Flagged??new();}
+            if(progress?.Id==state.Id && progress.Version is 1 or 2){state.Index=progress.Index;state.Answers=progress.Answers??new();state.Flagged=progress.Flagged??new();}
             state.Index=Math.Clamp(state.Index,0,state.Exam.Count-1);state.Answers??=new();
             foreach(var pair in state.Answers.ToArray())if(pair.Key<0||pair.Key>=state.Exam.Count||(state.Exam[pair.Key].IsEssay?(pair.Value==null||pair.Value.Length>32768):!state.Exam[pair.Key].Options.ContainsKey(pair.Value??"")))state.Answers.Remove(pair.Key);
+            if (state.Version == 1 || progress?.Version == 1) {
+                DataMigration.BackupV1(Path.Combine(Folder, "active-exam.json"));
+                DataMigration.BackupV1(Path.Combine(Folder, "exam-progress.json"));
+                Begin(state);
+            }
             return state;
         }catch(Exception ex) when(ex is IOException||ex is UnauthorizedAccessException||ex is JsonException||ex is InvalidDataException){warning="Không đọc được bài đang làm. File được giữ nguyên: "+ex.Message;return null;}
     }

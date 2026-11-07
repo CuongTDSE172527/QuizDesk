@@ -8,6 +8,7 @@ using System.Text.RegularExpressions;
 using System.Xml.Linq;
 namespace QuizDesk;
 public class Question {
+    public Guid StudyId;
     public int Number;
     public string Text = "", Note = "", Answer = "";
     public string OriginalAnswer = "", AnswerSource = "";
@@ -27,7 +28,7 @@ public class QuizSetup {
         if(!practice && setup.Count>pool.Count) throw new Exception("Số câu thi lớn hơn số câu đã chọn.");
         if(setup.ShuffleQuestions)rng.Shuffle(System.Runtime.InteropServices.CollectionsMarshal.AsSpan(pool));
         return pool.Take(practice?pool.Count:setup.Count).Select(q=>{
-            var copy=new Question {IsEssay=q.IsEssay,Number=q.Number,Text=q.Text,Note=q.Note,OriginalAnswer=q.OriginalAnswer,AnswerSource=q.AnswerSource,NeedsReview=q.NeedsReview,ImportWarnings=new(q.ImportWarnings??new())};
+            var copy=new Question {StudyId=q.StudyId,IsEssay=q.IsEssay,Number=q.Number,Text=q.Text,Note=q.Note,OriginalAnswer=q.OriginalAnswer,AnswerSource=q.AnswerSource,NeedsReview=q.NeedsReview,ImportWarnings=new(q.ImportWarnings??new())};
             string scoringAnswer=QuestionReview.ScoringAnswer(q);
             if(q.Media.Count>0)copy.Media=q.Media.Where(m=>m.Target=="question"||m.Target=="note").Select(m=>m.Clone()).ToList();
             var options=q.Options.ToList();

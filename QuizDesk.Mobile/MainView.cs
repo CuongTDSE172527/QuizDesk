@@ -264,6 +264,7 @@ public partial class MainView : UserControl {
         if(await dialog.ShowDialog<bool>(this))RefreshEditedQuestion(original,edited,viewport);
     }
     void CommitQuestion(Question original,Question result) {
+        result.StudyId = original?.StudyId ?? Guid.NewGuid();
         Importers.Validate(bank.Where(q=>!ReferenceEquals(q,original)).Append(result).ToList());if(bank.Any(q=>q.Number==result.Number&&!ReferenceEquals(q,original)))throw new InvalidOperationException("Số câu bị trùng.");
         if(original==null){bank.Add(result);setup.Included.Add(result.Number);}else{int at=bank.IndexOf(original);if(at<0)throw new InvalidOperationException("Câu hỏi không còn trong bộ đề.");bank[at]=result;}dirty=true;PersistBank();
     }
@@ -363,7 +364,9 @@ public partial class MainView : UserControl {
     void Finish(bool timedOut=false) {
         if(!active)return;if(practice){ExitPractice();return;}active=false;timer.Stop();currentDialog?.Close(false);navigation.IsEnabled=true;page.Children.Clear();
         attemptWatch.Stop();ExamAttempt completed=null;
-        if(!practice){completed=ExamAttempt.Capture(examTitle,startedAt,timedOut?new DateTimeOffset(deadline):DateTimeOffset.Now,TimeSpan.FromSeconds(Math.Clamp((DateTimeOffset.Now-startedAt).TotalSeconds,0,examMinutes*60)),examMinutes,timedOut,exam,answers);completed.Id=activeAttemptId;unsavedAttempts.Add(completed);TrySaveAttempts();}else{workspace.Complete(activeAttemptId);}
+        if(!practice){completed=ExamAttempt.Capture(examTitle,startedAt,timedOut?new DateTimeOffset(deadline):DateTimeOffset.Now,TimeSpan.FromSeconds(Math.Clamp((DateTimeOffset.Now-startedAt).TotalSeconds,0,examMinutes*60)),examMinutes,timedOut,exam,answers);completed.Id=activeAttemptId;completed.LibraryBankId=examBankId;
+            foreach(int flagged in flaggedQuestions)if(flagged>=0&&flagged<completed.Questions.Count)completed.Questions[flagged].Flagged=true;
+            unsavedAttempts.Add(completed);TrySaveAttempts();}else{workspace.Complete(activeAttemptId);}
         int graded=exam.Count(q=>!q.IsEssay&&q.Answer!=""),correct=Enumerable.Range(0,exam.Count).Count(i=>!exam[i].IsEssay&&exam[i].Answer!=""&&answers.TryGetValue(i,out string a)&&a==exam[i].Answer);
         Heading("Hoàn thành","Bạn đã hoàn thành bài làm",graded==0?"Bài chưa có câu đủ đáp án để tính điểm.":$"Đúng {correct} / {graded} câu được tính điểm");
         page.Children.Add(Card(Stack(Text(graded==0?"—":(10.0*correct/graded).ToString("0.##")+" / 10",42),Text($"Không tính điểm: {exam.Count(q=>q.IsEssay||q.Answer=="")} câu. Tự luận được xem lại và tự chấm trong Lịch sử. Điểm tự động chỉ dành cho trắc nghiệm."))));
