@@ -39,6 +39,7 @@ public partial class MainView {
         Tone(hero, Border.BackgroundProperty, "PrimaryContainer");
         page.Children.Add(hero);
         AddSmartReviewCard();
+        page.Children.Add(Btn("Xem thống kê", () => Navigate("statistics")));
 
         var savedStudy = studyStore.Load(out _);
         if (bank.Count > 0 || savedStudy != null) {

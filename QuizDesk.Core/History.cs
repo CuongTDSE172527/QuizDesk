@@ -6,6 +6,7 @@ namespace QuizDesk;
 public sealed class AttemptQuestion {
     public Guid StudyId {get;set;}
     public bool Flagged {get;set;}
+    public double? Seconds {get;set;}
     public bool IsEssay {get;set;}
     public bool? ManualCorrect {get;set;}
     public int Number {get;set;}
@@ -53,9 +54,13 @@ public sealed class ExamAttempt {
 }
 
 public sealed class HistoryStore {
+    readonly object historyGate = new();
     public string DirectoryPath {get;}
     public HistoryStore(string folder=null)=>DirectoryPath=folder??Path.Combine(Path.GetDirectoryName(new PreferencesStore().FilePath),"History");
     public void Save(ExamAttempt attempt) {
+        lock (historyGate) SaveCore(attempt);
+    }
+    void SaveCore(ExamAttempt attempt) {
         attempt.Validate();Directory.CreateDirectory(DirectoryPath);
         string path=Path.Combine(DirectoryPath,attempt.Id.ToString("N")+".json"),temp=path+"."+Guid.NewGuid().ToString("N")+".tmp";
         try {
@@ -66,6 +71,9 @@ public sealed class HistoryStore {
         }finally{if(File.Exists(temp))File.Delete(temp);}
     }
     public List<ExamAttempt> Load(out string warning) {
+        lock (historyGate) return LoadCore(out warning);
+    }
+    List<ExamAttempt> LoadCore(out string warning) {
         warning="";var attempts=new List<ExamAttempt>();int skipped=0;
         try {
             if(!Directory.Exists(DirectoryPath))return attempts;
@@ -80,7 +88,7 @@ public sealed class HistoryStore {
                     if (item.Version == 1) {
                         DataMigration.BackupV1(path);
                         item.Version = 2;
-                        Save(item);
+                        SaveCore(item);
                     }
                     attempts.Add(item);
                 }catch(Exception ex) when(ex is IOException||ex is UnauthorizedAccessException||ex is JsonException||ex is InvalidDataException){skipped++;}

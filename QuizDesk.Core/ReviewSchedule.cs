@@ -77,7 +77,7 @@ public sealed class ReviewStore(string folder) {
 }
 
 public sealed record ReviewCandidate(Guid BankId, string BankTitle, Guid QuestionId, int Number,
-    string Text, ReviewState State, bool WrongBook);
+    string Text, ReviewState State, bool WrongBook, bool Ready = true);
 
 public static class ReviewCatalog {
     public static List<ReviewCandidate> Build(MobileBankLibrary library,
@@ -103,13 +103,13 @@ public static class ReviewCatalog {
                     if (id != Guid.Empty && attempt.FinishedAt > issues.GetValueOrDefault(id)) issues[id] = attempt.FinishedAt;
                 }
             foreach (var question in bank.Content.Bank) {
-                if (question.IsEssay ? string.IsNullOrWhiteSpace(question.Answer) : QuestionReview.ScoringAnswer(question) == "") continue;
+                bool ready = question.IsEssay ? !string.IsNullOrWhiteSpace(question.Answer) : QuestionReview.ScoringAnswer(question) != "";
                 var records = reviewGroups[question.StudyId].OrderBy(review => review.At).ToArray();
                 ReviewState state = null;
                 foreach (var review in records) state = ReviewSchedule.Apply(state, review);
                 DateTimeOffset? issue = issues.TryGetValue(question.StudyId, out var date) ? date : null;
                 result.Add(new(summary.Id, bank.Content.Title, question.StudyId, question.Number,
-                    question.Text, state, ReviewSchedule.InWrongBook(records, issue)));
+                    question.Text, state, ReviewSchedule.InWrongBook(records, issue), ready));
             }
         }
         return result;

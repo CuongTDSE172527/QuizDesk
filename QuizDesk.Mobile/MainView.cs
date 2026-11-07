@@ -90,8 +90,8 @@ public partial class MainView : UserControl {
         shell.Children.Add(headerSurface);
         var container=contentContainer=new Grid {RowDefinitions=new RowDefinitions("Auto,*")};notice.Child=noticeText;container.Children.Add(notice);
         pageScroll=new ScrollViewer {Content=page,HorizontalScrollBarVisibility=ScrollBarVisibility.Disabled};Grid.SetRow(pageScroll,1);container.Children.Add(pageScroll);Grid.SetRow(container,1);shell.Children.Add(container);
-        var bottom=navigationGrid=new Grid {ColumnDefinitions=new ColumnDefinitions("*,*,*,*"),ColumnSpacing=0};
-        var navs=new[]{("home","Trang chủ"),("bank","Bộ đề"),("setup","Học & thi"),("history","Lịch sử")};
+        var bottom=navigationGrid=new Grid {ColumnDefinitions=new ColumnDefinitions("*,*,*,*,*"),ColumnSpacing=0};
+        var navs=new[]{("home","Trang chủ"),("bank","Bộ đề"),("setup","Học & thi"),("history","Lịch sử"),("statistics","Thống kê")};
         for(int i=0;i<navs.Length;i++){var (key,label)=navs[i];var button=NavButton(key,label);Grid.SetColumn(button,i);bottom.Children.Add(button);}
         Tone(navigation,Panel.BackgroundProperty,"Container");navigation.Children.Add(bottom);Grid.SetRow(navigation,2);navigation.Margin=default;shell.Children.Add(navigation);
         outer.Children.Add(glassBackdrop);outer.Children.Add(shell);outer.Children.Add(modal);Content=outer;TopLevel.SetAutoSafeAreaPadding(this,true);
@@ -134,7 +134,7 @@ public partial class MainView : UserControl {
         if(key!="bank"||currentPage!="bank")expandedBankId=null;
         currentPage=key;page.Children.Clear();preferencesStatus=null;
         SetDestination(key);
-        switch(key){case "bank":Bank();break;case "setup":ExamSettings();break;case "history":HistoryPage();break;case "help":Help();break;case "preferences":PreferencesPage();break;default:Home();break;}
+        switch(key){case "bank":Bank();break;case "setup":ExamSettings();break;case "history":HistoryPage();break;case "statistics":StatisticsPage();break;case "help":Help();break;case "preferences":PreferencesPage();break;default:Home();break;}
         pageScroll.Offset=default;Animate(page);
     }
     async Task<bool> Ask(string heading,string message,string yes="Đồng ý") {
@@ -318,7 +318,7 @@ public partial class MainView : UserControl {
         try{exam=QuizSetup.Build(bank,setup,isPractice,new Random());}catch(Exception ex){Notify(ex.Message,true);return;}
         currentPage="setup";SetDestination("setup");
         examTitle=title;examMinutes=setup.Minutes;examBankId=currentBankId;
-        flaggedQuestions.Clear();answers.Clear();index=0;practice=isPractice;active=true;activeAttemptId=Guid.NewGuid();deadline=DateTime.Now.AddMinutes(setup.Minutes);notice.IsVisible=false;navigation.IsEnabled=false;
+        flaggedQuestions.Clear();answers.Clear();examSeconds.Clear();examTimingAt=System.Diagnostics.Stopwatch.GetTimestamp();index=0;practice=isPractice;active=true;activeAttemptId=Guid.NewGuid();deadline=DateTime.Now.AddMinutes(setup.Minutes);notice.IsVisible=false;navigation.IsEnabled=false;
         startedAt=DateTimeOffset.Now;attemptWatch.Restart();BeginCheckpoint();
         clock.Text=TimeSpan.FromMinutes(setup.Minutes).ToString(@"hh\:mm\:ss");CreateQuestionView();ShowQuestion();if(!practice)timer.Start();pageScroll.Offset=default;Animate(page);
     }
@@ -342,7 +342,7 @@ public partial class MainView : UserControl {
         CreateFlagControls();
         CreateJumpNavigator();
     }
-    void MoveToQuestion(int target){if(!active||target<0||target>=exam.Count)return;if(index==target){UpdateJumpState();return;}index=target;ShowQuestion();Checkpoint();Animate(questionText,110);}
+    void MoveToQuestion(int target){if(!active||target<0||target>=exam.Count)return;if(index==target){UpdateJumpState();return;}AccumulateExamTime();index=target;ShowQuestion();Checkpoint();Animate(questionText,110);}
     void ChooseAnswer(string key){if(!active)return;bool changed=(!practice||!answers.ContainsKey(index))&&exam[index].Options.ContainsKey(key)&&answers.GetValueOrDefault(index)!=key;if(changed)answers[index]=key;UpdateAnswerState();if(changed){Checkpoint();if(practice && exam[index].Answer!="")RecordPracticeRecall(key==exam[index].Answer);Animate(answerMarkers[key],90,true);}}
     void ShowQuestion(){questionShownAt=System.Diagnostics.Stopwatch.GetTimestamp();var q=exam[index];questionHeading.Text=$"Câu {index+1} / {exam.Count}";questionText.Text=q.Text;questionMedia.Set(q.Media.Where(m=>m.Target=="question"));foreach(var pair in answerButtons){bool exists=!q.IsEssay&&q.Options.ContainsKey(pair.Key);string value=q.Options.GetValueOrDefault(pair.Key);pair.Value.IsVisible=exists;if(exists)answerLabels[pair.Key].Text=pair.Key+".  "+value;choiceMedia[pair.Key].Set(q.Media.Where(m=>m.Target==pair.Key));}ShowEssayInput(q);previousQuestion.IsEnabled=index>0;nextQuestion.IsEnabled=index<exam.Count-1;UpdateAnswerState();}
     void UpdateAnswerState() {
@@ -364,9 +364,10 @@ public partial class MainView : UserControl {
     }
     void Tick(){if(!active)return;var left=deadline-DateTime.Now;clock.Text=left.TotalSeconds>0?left.ToString(@"hh\:mm\:ss"):"00:00:00";if(left.TotalSeconds<=0)Finish(true);}
     void Finish(bool timedOut=false) {
-        if(!active)return;if(practice){ExitPractice();return;}active=false;timer.Stop();currentDialog?.Close(false);navigation.IsEnabled=true;page.Children.Clear();
+        if(!active)return;if(practice){ExitPractice();return;}AccumulateExamTime();active=false;timer.Stop();currentDialog?.Close(false);navigation.IsEnabled=true;page.Children.Clear();
         attemptWatch.Stop();ExamAttempt completed=null;
         if(!practice){completed=ExamAttempt.Capture(examTitle,startedAt,timedOut?new DateTimeOffset(deadline):DateTimeOffset.Now,TimeSpan.FromSeconds(Math.Clamp((DateTimeOffset.Now-startedAt).TotalSeconds,0,examMinutes*60)),examMinutes,timedOut,exam,answers);completed.Id=activeAttemptId;completed.LibraryBankId=examBankId;
+            foreach(var timing in examSeconds)completed.Questions[timing.Key].Seconds=timing.Value;
             foreach(int flagged in flaggedQuestions)if(flagged>=0&&flagged<completed.Questions.Count)completed.Questions[flagged].Flagged=true;
             unsavedAttempts.Add(completed);TrySaveAttempts();}else{workspace.Complete(activeAttemptId);}
         int graded=exam.Count(q=>!q.IsEssay&&q.Answer!=""),correct=Enumerable.Range(0,exam.Count).Count(i=>!exam[i].IsEssay&&exam[i].Answer!=""&&answers.TryGetValue(i,out string a)&&a==exam[i].Answer);

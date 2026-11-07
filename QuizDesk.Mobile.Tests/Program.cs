@@ -7,6 +7,7 @@ partial class Tests {
     static void Check(bool condition,string name) {if(!condition)throw new Exception(name);checks++;Console.WriteLine("PASS "+name);}
     [STAThread] static void Main(string[] args) {
         if(args.Length==0){Console.WriteLine("Usage: QuizDesk.Tests <samples-folder> [original.docx reviewed.docx] OR --settings <test-folder>");return;}
+        if(args[0]=="--statistics-60"){Statistics60Checks();return;}
         if(args[0]=="--smart-review"){SmartReviewChecks(args[1]);return;}
         if(args[0]=="--migration-60"){Migration60Checks(args[1]);return;}
         if(args[0]=="--essay"){EssayChecks(args[1]);return;}

@@ -1,3 +1,11 @@
+# QuizDesk 6.0.0
+
+- Ôn tập thông minh gom câu đến hạn từ nhiều bộ đề. Giới hạn mỗi lượt chỉnh trong Trang chủ.
+- Sổ câu sai gom câu sai và câu đánh dấu trong thi thử. Hai lượt ôn đúng liên tiếp sẽ đưa câu ra khỏi sổ.
+- Thống kê độ chính xác, câu hay sai, số ngày học, chuỗi học, thời gian theo câu và mức độ ghi nhớ. Lọc theo bộ đề và thời gian.
+- Tự động nâng cấp thư viện, tiến trình và lịch sử 5.x khi mở. Bản dữ liệu trước nâng cấp nằm cạnh file gốc với đuôi .v1.bak. Định dạng .quiz giữ tương thích.
+- Lịch sử cũ thiếu thời gian theo câu được hiển thị là chưa có dữ liệu. Kết quả cũ chỉ gắn với bộ đề hiện tại khi xác định được đối chiếu.
+
 # QuizDesk 5.17.6 — 07/11/2026
 
 - Tìm bộ đề theo tên hoặc file nguồn, hỗ trợ gõ tiếng Việt không dấu.

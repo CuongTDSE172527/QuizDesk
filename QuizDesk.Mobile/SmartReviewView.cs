@@ -38,7 +38,7 @@ public partial class MainView {
 
     async Task LoadSmartReviewCard(StackPanel body) {
         try {
-            var catalog = await Task.Run(ReadReviewCatalog);
+            var catalog = (await Task.Run(ReadReviewCatalog)).Where(item => item.Ready).ToList();
             if (currentPage != "home" || active || studying || body.Parent is not Border card || !page.Children.Contains(card)) return;
             var now = DateTimeOffset.UtcNow;
             var due = catalog.Where(item => ReviewSchedule.DueToday(item.State, now, TimeZoneInfo.Local))
